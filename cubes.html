@@ -21,6 +21,7 @@
         padding: 10px 0;
         margin-bottom: 10px;
         font-size: 1.2rem;
+        align-items: center;
     }
     .level {
         font-weight: bold;
@@ -99,6 +100,22 @@
     .game-container {
         position: relative;
     }
+    .btn-flatten {
+        padding: 5px 10px;
+        background: #e0e0e0;
+        color: #666;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: background 0.2s;
+    }
+    .btn-flatten:hover {
+        background: #d0d0d0;
+    }
+    .btn-flatten:active {
+        background: #c0c0c0;
+    }
 </style>
 </head>
 <body>
@@ -107,6 +124,7 @@
 <div class="game-info">
     <div class="level">Уровень: <span id="currentLevel">1</span></div>
     <div class="progress">Прогресс: <span id="progress">0/3</span></div>
+    <button id="btnFlatten" class="btn-flatten" title="Удерживайте для сжатия высоты">⇅</button>
 </div>
 
 <div class="game-container">
@@ -129,6 +147,7 @@
     const messageEl = document.getElementById('message');
     const levelEl = document.getElementById('currentLevel');
     const progressEl = document.getElementById('progress');
+    const btnFlatten = document.getElementById('btnFlatten');
 
     // Игровые параметры
     let currentLevel = 1;
@@ -137,6 +156,7 @@
     let currentHeights = [];
     const maxGridSize = 7;  // Максимальный размер сетки 7x7
     const maxCubeHeight = 4;          // ограничиваем максимальную высоту башни
+    let isFlattened = false;  // Флаг для отслеживания режима сжатия высоты
 
     // Цветовая палитра для кубиков
     const palette = [
@@ -158,7 +178,9 @@
     // Корректное изометрическое преобразование координат
     function iso(ix, iy, iz) {
         const x = originX + (ix - iy) * cube * cos30;
-        const y = originY + (ix + iy) * cube * sin30 - iz * cube * sin30 * 2;
+        // Уменьшаем высоту вдвое, если режим сжатия активен
+        const heightMultiplier = isFlattened ? 1 : 2;
+        const y = originY + (ix + iy) * cube * sin30 - iz * cube * sin30 * heightMultiplier;
         return {x, y};
     }
 
@@ -499,6 +521,34 @@
         if (e.key === 'Enter') {
             checkAnswer();
         }
+    });
+
+    // Обработчики для кнопки сжатия высоты
+    btnFlatten.addEventListener('mousedown', () => {
+        isFlattened = true;
+        drawScene();
+    });
+
+    btnFlatten.addEventListener('mouseup', () => {
+        isFlattened = false;
+        drawScene();
+    });
+
+    btnFlatten.addEventListener('mouseleave', () => {
+        isFlattened = false;
+        drawScene();
+    });
+
+    // Для поддержки тач-устройств
+    btnFlatten.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        isFlattened = true;
+        drawScene();
+    });
+
+    btnFlatten.addEventListener('touchend', () => {
+        isFlattened = false;
+        drawScene();
     });
 
     // Инициализация игры

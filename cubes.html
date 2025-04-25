@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8" />
-<title>Генератор заданий – посчитай кубики</title>
+<title>Посчитай кубики - развивающая игра</title>
 <style>
     html,body{
         margin:0;
@@ -14,73 +14,130 @@
         align-items:center;
     }
     h1{margin:20px 0 10px;font-size:1.6rem;}
-    #controls{
-        margin-bottom:12px;
-        display:flex;
-        gap:8px;
-        flex-wrap:wrap;
-        align-items:center;
+    .game-info {
+        display: flex;
+        justify-content: space-between;
+        width: 600px;
+        padding: 10px 0;
+        margin-bottom: 10px;
+        font-size: 1.2rem;
     }
-    button,select,input{
-        padding:6px 10px;
-        border-radius:6px;
-        border:1px solid #ccc;
-        cursor:pointer;
-        background:#fff;
-        font-size:0.9rem;
+    .level {
+        font-weight: bold;
+        color: #2196F3;
     }
-    button:hover{background:#f0f0f0;}
-    #answer{font-weight:bold;margin-left:10px;}
-    canvas{background:#ffffff;box-shadow:0 2px 6px rgba(0,0,0,0.2);}
+    .progress {
+        color: #4CAF50;
+        font-weight: bold;
+    }
     .input-container {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
         margin-top: 15px;
+        width: 100%;
+        max-width: 600px;
+        justify-content: center;
     }
     .input-container input {
         width: 80px;
+        padding: 8px;
+        font-size: 1.2rem;
+        border: 2px solid #ccc;
+        border-radius: 4px;
+        text-align: center;
     }
-    .feedback {
+    .input-container input:focus {
+        border-color: #2196F3;
+        outline: none;
+    }
+    .btn-next {
+        padding: 8px 16px;
+        background: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1.2rem;
+    }
+    .btn-next:hover {
+        background: #45a049;
+    }
+    canvas {
+        background:#ffffff;
+        box-shadow:0 2px 6px rgba(0,0,0,0.2);
+        border-radius: 8px;
+    }
+    .message {
+        margin-top: 15px;
+        padding: 10px 20px;
+        border-radius: 8px;
         font-weight: bold;
-        margin-left: 10px;
+        font-size: 1.2rem;
+        text-align: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        min-width: 300px;
     }
-    .correct {
-        color: green;
+    .success {
+        background-color: rgba(76, 175, 80, 0.9);
+        color: white;
     }
-    .incorrect {
-        color: red;
+    .error {
+        background-color: rgba(244, 67, 54, 0.9);
+        color: white;
+    }
+    .level-up {
+        background-color: rgba(33, 150, 243, 0.9);
+        color: white;
+        font-size: 1.5rem;
+    }
+    .game-container {
+        position: relative;
     }
 </style>
 </head>
 <body>
 <h1>Посчитай кубики!</h1>
-<div id="controls">
-    <label>Размер сетки: <select id="gridSize">
-        <option value="3">3×3</option>
-        <option value="4" selected>4×4</option>
-        <option value="5">5×5</option>
-    </select></label>
-    <label>Макс. высота: <input id="maxHeight" type="number" min="1" max="6" value="3" style="width:60px"></label>
-    <label>Мин. кубиков: <input id="minCubes" type="number" min="5" max="30" value="10" style="width:60px"></label>
-    <label>Макс. кубиков: <input id="maxCubes" type="number" min="10" max="40" value="30" style="width:60px"></label>
-    <button id="btnGenerate">Сгенерировать</button>
-    <button id="btnShow">Показать ответ</button>
-    <span id="answer" hidden></span>
+
+<div class="game-info">
+    <div class="level">Уровень: <span id="currentLevel">1</span></div>
+    <div class="progress">Прогресс: <span id="progress">0/3</span></div>
 </div>
-<canvas id="canvas" width="600" height="450"></canvas>
+
+<div class="game-container">
+    <canvas id="canvas" width="600" height="450"></canvas>
+    <div id="message" class="message"></div>
+</div>
+
 <div class="input-container">
-    <label for="userAnswer">Твой ответ: </label>
+    <label for="userAnswer">Сколько кубиков? </label>
     <input type="number" id="userAnswer" min="1">
-    <button id="btnCheck">Проверить</button>
-    <span id="feedback" class="feedback"></span>
+    <button id="btnNext" class="btn-next">Далее</button>
 </div>
 
 <script>
 (function(){
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
+    const userAnswerInput = document.getElementById('userAnswer');
+    const btnNext = document.getElementById('btnNext');
+    const messageEl = document.getElementById('message');
+    const levelEl = document.getElementById('currentLevel');
+    const progressEl = document.getElementById('progress');
 
+    // Игровые параметры
+    let currentLevel = 1;
+    let successCount = 0;
+    let totalCubes = 0;
+    let currentHeights = [];
+    const maxGridSize = 7;  // Максимальный размер сетки 7x7
+
+    // Цветовая палитра для кубиков
     const palette = [
         '#ffadad','#ffd6a5','#fdffb6','#caffbf',
         '#9bf6ff','#a0c4ff','#bdb2ff','#ffc6ff',
@@ -88,28 +145,28 @@
         '#f7cac9','#c5b9cd','#97c1a9','#fcf6bd'
     ];
 
-    const cube = 40;                  // базовый размер ребра куба в px
+    // Параметры отрисовки
+    const cube = 36;                  // базовый размер ребра куба в px (уменьшенный для большой сетки)
     const originX = canvas.width/2;   // центр сцены по X
-    const originY = canvas.height/2;  // центр сцены по Y
-    const isoAngle = Math.PI/6;       // 30 градусов - угол проекции
+    const originY = 100;              // верхний отступ для рисунка
 
+    const isoAngle = Math.PI/6;       // 30 градусов - угол проекции
     const cos30 = Math.cos(isoAngle);
     const sin30 = Math.sin(isoAngle);
 
-    // Корректное изометрическое преобразование координат ячейки (ix,iy,iz) -> экран (x,y)
+    // Корректное изометрическое преобразование координат
     function iso(ix, iy, iz) {
-        // Правильное изометрическое преобразование
         const x = originX + (ix - iy) * cube * cos30;
         const y = originY + (ix + iy) * cube * sin30 - iz * cube * 0.7;
         return {x, y};
     }
 
-    // Рисуем базовую плоскость для понимания пространства
+    // Рисуем базовую плоскость
     function drawBase(n) {
         ctx.strokeStyle = '#ccc';
         ctx.lineWidth = 1;
 
-        // Рисуем плоскость под кубиками
+        // Рисуем плоскость
         const points = [];
         points.push(iso(0, 0, 0));
         points.push(iso(n, 0, 0));
@@ -129,7 +186,7 @@
         // Сетка
         ctx.strokeStyle = '#ddd';
         for(let i=0; i<=n; i++) {
-            // Горизонтальные линии сетки
+            // Горизонтальные линии
             const start1 = iso(0, i, 0);
             const end1 = iso(n, i, 0);
             ctx.beginPath();
@@ -137,7 +194,7 @@
             ctx.lineTo(end1.x, end1.y);
             ctx.stroke();
 
-            // Вертикальные линии сетки
+            // Вертикальные линии
             const start2 = iso(i, 0, 0);
             const end2 = iso(i, n, 0);
             ctx.beginPath();
@@ -147,7 +204,7 @@
         }
     }
 
-    // небольшой хелпер для заливки полигона
+    // Заливка полигона
     function poly(points, fill) {
         ctx.beginPath();
         ctx.moveTo(points[0].x, points[0].y);
@@ -160,7 +217,19 @@
         ctx.stroke();
     }
 
-    // рисуем один куб по координате колонки (ix,iy) и уровню (iz)
+    // Затенение/осветление цвета
+    function shade(col, perc) {
+        const num = parseInt(col.slice(1), 16);
+        let r = (num>>16) + Math.round(2.55*perc);
+        let g = (num>>8 & 0x00FF) + Math.round(2.55*perc);
+        let b = (num & 0x0000FF) + Math.round(2.55*perc);
+        r = (r<255)?((r<0)?0:r):255;
+        g = (g<255)?((g<0)?0:g):255;
+        b = (b<255)?((b<0)?0:b):255;
+        return '#' + (0x1000000 + (r<<16) + (g<<8) + b).toString(16).slice(1);
+    }
+
+    // Рисуем куб
     function drawCube(ix, iy, iz, baseColor) {
         // Расчёт цветов для разных граней
         const cTop = shade(baseColor, 30);     // верхняя грань светлее
@@ -187,149 +256,213 @@
         poly([topBackLeft, topBackRight, bottomBackRight, bottomBackLeft], cRight);
     }
 
-    // осветление/затемнение цвета на percentage (-100..100)
-    function shade(col, perc) {
-        const num = parseInt(col.slice(1), 16);
-        let r = (num>>16) + Math.round(2.55*perc);
-        let g = (num>>8 & 0x00FF) + Math.round(2.55*perc);
-        let b = (num & 0x0000FF) + Math.round(2.55*perc);
-        r = (r<255)?((r<0)?0:r):255;
-        g = (g<255)?((g<0)?0:g):255;
-        b = (b<255)?((b<0)?0:b):255;
-        return '#' + (0x1000000 + (r<<16) + (g<<8) + b).toString(16).slice(1);
+    // Генерация случайного числа в диапазоне
+    function rand(min, max) { 
+        return Math.floor(Math.random() * (max - min + 1)) + min; 
     }
 
-    // генерируем таблицу высот с монотонным убыванием назад/право для однозначности
-    function generateHeights(n, maxH, minCubes, maxCubes) {
-        let totalCubes = 0;
+    // Генерируем таблицу высот с монотонным убыванием для однозначности подсчета
+    function generateHeights(gridSize, targetCubes) {
         let attempts = 0;
         let H;
+        let totalCubes = 0;
         
-        // Пытаемся сгенерировать карту с нужным кол-вом кубиков
-        do {
-            attempts++;
-            H = Array.from({length: n}, () => Array(n).fill(0));
-            H[0][0] = rand(1, maxH);
+        // Упрощаем логику - создаем простую структуру с нужным количеством кубиков
+        H = Array.from({length: gridSize}, () => Array(gridSize).fill(0));
+        
+        // Начинаем с одной башни нужной высоты
+        let remaining = targetCubes;
+        let maxTowerHeight = Math.min(Math.ceil(targetCubes / 2), 6); // Не слишком высокую
+        
+        H[0][0] = Math.min(remaining, maxTowerHeight);
+        remaining -= H[0][0];
+        
+        // Распределяем оставшиеся кубики по первым строкам и столбцам
+        let x = 0, y = 1;
+        const maxIdx = Math.min(4, gridSize - 1); // Не слишком далеко разбрасываем
+        
+        while (remaining > 0 && x <= maxIdx && y <= maxIdx) {
+            // Добавляем кубики с соблюдением правила убывания
+            let maxHeight;
             
-            // первая строка
-            for(let j=1; j<n; j++) {
-                H[0][j] = rand(0, Math.max(0, H[0][j-1] - 1));
+            if (x === 0) {
+                // В первом столбце зависим только от верхней ячейки
+                maxHeight = Math.max(1, H[x][y-1] - 1);
+            } else if (y === 0) {
+                // В первой строке зависим только от левой ячейки
+                maxHeight = Math.max(1, H[x-1][y] - 1);
+            } else {
+                // В других ячейках зависим от обеих соседних
+                maxHeight = Math.max(1, Math.min(H[x-1][y], H[x][y-1]) - 1);
             }
             
-            // остальные
-            for(let i=1; i<n; i++) {
-                // первый столбец
-                H[i][0] = rand(0, Math.max(0, H[i-1][0] - 1));
-                for(let j=1; j<n; j++) {
-                    const limit = Math.min(H[i-1][j], H[i][j-1]);
-                    H[i][j] = rand(0, Math.max(0, limit - 1));
-                }
-            }
+            const addCubes = Math.min(remaining, maxHeight);
+            H[x][y] = addCubes;
+            remaining -= addCubes;
             
-            totalCubes = H.flat().reduce((a, b) => a + b, 0);
-            
-            // Если слишком много попыток, расширим диапазон
-            if (attempts > 50) {
-                minCubes = Math.max(5, minCubes - 2);
-                maxCubes = Math.min(50, maxCubes + 2);
-            }
-            
-        } while (totalCubes < minCubes || totalCubes > maxCubes);
-        
-        return H;
-    }
-
-    function rand(min, max) { return Math.floor(Math.random()*(max-min+1))+min; }
-
-    let currentHeights = [];
-    let totalCubes = 0;
-    let currentSize = 4;
-
-    function drawScene() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Рисуем базовую плоскость
-        drawBase(currentSize);
-        
-        // отрисовываем от дальних к ближним
-        const columns = [];
-        for(let i=0; i<currentSize; i++) {
-            for(let j=0; j<currentSize; j++) {
-                columns.push({i, j, h: currentHeights[i][j]});
+            // Перемещаемся зигзагом
+            if (y < maxIdx) {
+                y++;
+            } else {
+                x++;
+                y = 0;
             }
         }
         
-        // Сортируем колонки от дальних к ближним
+        // Подсчет фактического количества кубиков
+        totalCubes = 0;
+        for (let i = 0; i < gridSize; i++) {
+            for (let j = 0; j < gridSize; j++) {
+                totalCubes += H[i][j];
+            }
+        }
+        
+        console.log(`Сгенерировано ${totalCubes} кубиков, целевое: ${targetCubes}`);
+        
+        // Ручная проверка количества кубиков
+        let manualCount = 0;
+        for (let i = 0; i < gridSize; i++) {
+            for (let j = 0; j < gridSize; j++) {
+                manualCount += H[i][j];
+            }
+        }
+        console.log(`Ручной подсчет: ${manualCount} кубиков`);
+        
+        return {heights: H, cubes: manualCount};
+    }
+
+    // Отрисовка сцены
+    function drawScene() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Размер сетки зависит от уровня, максимум 7x7
+        const gridSize = Math.min(maxGridSize, 3 + Math.floor(currentLevel / 3));
+        
+        // Рисуем базовую плоскость
+        drawBase(gridSize);
+        
+        // Подготавливаем колонки для отрисовки
+        const columns = [];
+        for(let i=0; i<gridSize; i++) {
+            for(let j=0; j<gridSize; j++) {
+                if (currentHeights[i] && currentHeights[i][j] > 0) {
+                    columns.push({i, j, h: currentHeights[i][j]});
+                }
+            }
+        }
+        
+        // Дополнительная проверка подсчета кубиков
+        let visualCount = 0;
+        columns.forEach(col => {
+            visualCount += col.h;
+        });
+        console.log(`Подсчет для отрисовки: ${visualCount} кубиков`);
+        
+        // Сортируем от дальних к ближним
         columns.sort((a, b) => (a.i + a.j) - (b.i + b.j));
         
-        // Рисуем колонки кубов снизу вверх с случайным цветом для каждого куба
+        // Рисуем колонки кубов
+        let renderedCount = 0;
         columns.forEach(col => {
             for(let z=0; z<col.h; z++) {
-                // Каждый куб имеет свой случайный цвет
+                renderedCount++;
                 const color = palette[rand(0, palette.length-1)];
                 drawCube(col.i, col.j, z, color);
             }
         });
+        console.log(`Реально отрисовано: ${renderedCount} кубиков`);
     }
 
-    function newTask() {
-        currentSize = parseInt(document.getElementById('gridSize').value, 10);
-        const maxH = parseInt(document.getElementById('maxHeight').value, 10);
-        const minCubes = parseInt(document.getElementById('minCubes').value, 10);
-        const maxCubes = parseInt(document.getElementById('maxCubes').value, 10);
+    // Показ сообщения
+    function showMessage(text, type) {
+        messageEl.textContent = text;
+        messageEl.className = `message ${type}`;
+        messageEl.style.opacity = 1;
         
-        // Проверка валидности интервала
-        if (minCubes > maxCubes) {
-            document.getElementById('minCubes').value = maxCubes;
-        }
+        setTimeout(() => {
+            messageEl.style.opacity = 0;
+        }, 2000);
+    }
+
+    // Создание нового задания
+    function createNewTask() {
+        // Очистим поле ввода
+        userAnswerInput.value = '';
+        userAnswerInput.focus();
         
-        currentHeights = generateHeights(currentSize, maxH, minCubes, maxCubes);
-        totalCubes = currentHeights.flat().reduce((a, b) => a + b, 0);
+        // Расчет целевого количества кубиков для текущего уровня
+        const targetCubes = currentLevel + 3 + rand(0, 2);
+        console.log(`Создаем задание для уровня ${currentLevel}, целевое количество кубиков: ${targetCubes}`);
         
-        // Очищаем предыдущие результаты
-        document.getElementById('answer').hidden = true;
-        document.getElementById('userAnswer').value = '';
-        document.getElementById('feedback').textContent = '';
-        document.getElementById('feedback').className = 'feedback';
+        // Размер сетки зависит от уровня
+        const gridSize = Math.min(maxGridSize, 3 + Math.floor(currentLevel / 3));
         
+        // Генерируем высоты колонок
+        const result = generateHeights(gridSize, targetCubes);
+        currentHeights = result.heights;
+        totalCubes = Math.round(result.cubes); // Округляем до целого числа
+        
+        console.log(`Реальное количество кубиков: ${totalCubes}`);
+        
+        // Обновляем прогресс
+        progressEl.textContent = `${successCount}/3`;
+        
+        // Отрисовываем
         drawScene();
     }
 
+    // Проверка ответа пользователя
     function checkAnswer() {
-        const userAnswer = parseInt(document.getElementById('userAnswer').value, 10);
-        const feedback = document.getElementById('feedback');
+        const userAnswer = parseInt(userAnswerInput.value, 10);
         
         if (isNaN(userAnswer)) {
-            feedback.textContent = 'Введи число!';
-            feedback.className = 'feedback';
+            showMessage('Введите число!', 'error');
             return;
         }
         
         if (userAnswer === totalCubes) {
-            feedback.textContent = 'Правильно! Молодец!';
-            feedback.className = 'feedback correct';
-            document.getElementById('answer').hidden = true;
+            // Правильный ответ
+            successCount++;
+            
+            if (successCount >= 3) {
+                // Переход на следующий уровень
+                currentLevel++;
+                successCount = 0;
+                levelEl.textContent = currentLevel;
+                showMessage(`Поздравляем! Уровень ${currentLevel}`, 'level-up');
+            } else {
+                showMessage('Правильно!', 'success');
+            }
+            
+            // Создаем новое задание
+            setTimeout(createNewTask, 1500);
         } else {
-            feedback.textContent = 'Неправильно, попробуй ещё!';
-            feedback.className = 'feedback incorrect';
+            // Неправильный ответ
+            successCount = 0;
+            showMessage(`Неверно! Правильный ответ: ${Math.round(totalCubes)}`, 'error');
+            progressEl.textContent = `${successCount}/3`;
+            
+            // Задержка перед новым заданием
+            setTimeout(createNewTask, 2500);
         }
     }
 
-    document.getElementById('btnGenerate').addEventListener('click', newTask);
-    document.getElementById('btnCheck').addEventListener('click', checkAnswer);
-    document.getElementById('userAnswer').addEventListener('keypress', (e) => {
+    // Обработчики событий
+    btnNext.addEventListener('click', checkAnswer);
+    userAnswerInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             checkAnswer();
         }
     });
-    document.getElementById('btnShow').addEventListener('click', () => {
-        const ans = document.getElementById('answer');
-        ans.textContent = `Всего кубиков: ${totalCubes}`;
-        ans.hidden = false;
-    });
 
-    // первое задание при загрузке
-    newTask();
+    // Инициализация игры
+    function initGame() {
+        levelEl.textContent = currentLevel;
+        createNewTask();
+    }
+
+    // Запуск игры
+    initGame();
 })();
 </script>
 </body>

@@ -149,7 +149,7 @@
     // Параметры отрисовки
     const cube = 30;                  // уменьшаем размер куба для большей платформы
     const originX = canvas.width/2;   // центр сцены по X
-    const originY = 80;               // уменьшаем отступ сверху
+    const originY = 180;              // смещаем площадку ниже
 
     const isoAngle = Math.PI/6;       // 30 градусов - угол проекции
     const cos30 = Math.cos(isoAngle);
@@ -369,12 +369,12 @@
                     // Если первая башня выше второй
                     if (tower1.height > tower2.height) {
                         // Проверяем, находится ли более высокая башня ближе к наблюдателю
-                        // В изометрии ближе те клетки, у которых сумма координат меньше
+                        // Наблюдатель с противоположной стороны - чем больше сумма координат, тем ближе к наблюдателю
                         const tower1Sum = tower1.x + tower1.y;
                         const tower2Sum = tower2.x + tower2.y;
                         
                         // Если высокая башня ближе к наблюдателю - меняем местами
-                        if (tower1Sum < tower2Sum) {
+                        if (tower1Sum > tower2Sum) {
                             // Меняем башни местами
                             [tower1.x, tower2.x] = [tower2.x, tower1.x];
                             [tower1.y, tower2.y] = [tower2.y, tower1.y];

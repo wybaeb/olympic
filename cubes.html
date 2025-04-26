@@ -154,9 +154,10 @@
     let successCount = 0;
     let totalCubes = 0;
     let currentHeights = [];
-    const maxGridSize = 7;  // Максимальный размер сетки 7x7
+    const maxGridSize = 5;  // Максимальный размер сетки 5x5
     const maxCubeHeight = 4;          // ограничиваем максимальную высоту башни
     let isFlattened = false;  // Флаг для отслеживания режима сжатия высоты
+    const SECRET_KEY = "cub3C0unt!ng2023"; // Секретный ключ для шифрования уровня
 
     // Цветовая палитра для кубиков
     const palette = [
@@ -294,8 +295,8 @@
         const targetCubes = currentLevel + 3 + rand(0, 2);
         console.log(`Создаем задание для уровня ${currentLevel}, целевое количество кубиков: ${targetCubes}`);
         
-        // Размер сетки фиксирован 7x7
-        const gridSize = 7;
+        // Размер сетки фиксирован 5x5
+        const gridSize = 5;
         
         // Генерируем высоты колонок
         const result = generateHeights(gridSize, targetCubes);
@@ -437,8 +438,8 @@
     function drawScene() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Фиксированный размер сетки 7x7
-        const gridSize = 7;
+        // Фиксированный размер сетки 5x5
+        const gridSize = 5;
         
         // Рисуем базовую плоскость
         drawBase(gridSize);
@@ -498,6 +499,9 @@
                 successCount = 0;
                 levelEl.textContent = currentLevel;
                 showMessage(`Поздравляем! Уровень ${currentLevel}`, 'level-up');
+                
+                // Обновляем хеш в URL
+                updateLevelHash();
             } else {
                 showMessage('Правильно!', 'success');
             }
@@ -532,6 +536,7 @@
     btnFlatten.addEventListener('mouseup', () => {
         isFlattened = false;
         drawScene();
+        userAnswerInput.focus();
     });
 
     btnFlatten.addEventListener('mouseleave', () => {
@@ -549,12 +554,97 @@
     btnFlatten.addEventListener('touchend', () => {
         isFlattened = false;
         drawScene();
+        userAnswerInput.focus();
     });
 
     // Инициализация игры
     function initGame() {
+        // Проверяем хеш в URL
+        checkLevelFromHash();
+        
         levelEl.textContent = currentLevel;
         createNewTask();
+    }
+
+    // Функция для проверки хеша в URL и установки соответствующего уровня
+    function checkLevelFromHash() {
+        const hash = window.location.hash.substr(1);
+        if (hash && hash.length > 0) {
+            try {
+                const level = decodeLevelFromHash(hash);
+                if (level && level > 0 && level <= 100) { // Ограничиваем максимальный уровень
+                    currentLevel = level;
+                    console.log(`Восстановлен уровень: ${level} из хеша`);
+                }
+            } catch (e) {
+                console.log("Некорректный хеш уровня");
+            }
+        }
+    }
+
+    // Функция для обновления хеша в URL при изменении уровня
+    function updateLevelHash() {
+        const hash = encodeLevelToHash(currentLevel);
+        window.location.hash = hash;
+    }
+
+    // Функция для генерации сложного хеша на основе номера уровня
+    function encodeLevelToHash(level) {
+        // Создаем случайную "соль" для усложнения хеша
+        const salt = generateRandomString(5);
+        
+        // Преобразуем уровень в строку и добавляем соль
+        const levelStr = level.toString().padStart(3, '0');
+        
+        // XOR шифрование с ключом
+        let encoded = '';
+        for (let i = 0; i < levelStr.length; i++) {
+            const charCode = levelStr.charCodeAt(i);
+            const keyChar = SECRET_KEY.charCodeAt(i % SECRET_KEY.length);
+            encoded += String.fromCharCode(charCode ^ keyChar);
+        }
+        
+        // Добавляем соль и время (для уникальности)
+        const timestamp = Date.now() % 10000;
+        const dataToEncode = salt + encoded + timestamp.toString();
+        
+        // Кодируем в Base64
+        return btoa(dataToEncode).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+    }
+
+    // Функция для декодирования хеша в номер уровня
+    function decodeLevelFromHash(hash) {
+        try {
+            // Декодируем из Base64
+            const decoded = atob(hash.replace(/-/g, '+').replace(/_/g, '/'));
+            
+            // Убираем соль (первые 5 символов) и timestamp (последние 4 символа)
+            const encodedLevel = decoded.substr(5, 3);
+            
+            // XOR дешифрование с ключом
+            let levelStr = '';
+            for (let i = 0; i < encodedLevel.length; i++) {
+                const charCode = encodedLevel.charCodeAt(i);
+                const keyChar = SECRET_KEY.charCodeAt(i % SECRET_KEY.length);
+                levelStr += String.fromCharCode(charCode ^ keyChar);
+            }
+            
+            // Преобразуем в число
+            return parseInt(levelStr, 10);
+        } catch (e) {
+            console.error("Ошибка декодирования хеша", e);
+            return null;
+        }
+    }
+
+    // Генерация случайной строки заданной длины
+    function generateRandomString(length) {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
     }
 
     // Запуск игры

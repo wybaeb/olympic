@@ -155,6 +155,8 @@
     let totalCubes = 0;
     let currentHeights = [];
     let previousHeights = null;   // Добавляем хранение предыдущей композиции
+    let compositionHistory = [];  // История последних композиций
+    const HISTORY_SIZE = 5;       // Хранить последние 5 композиций
     const maxGridSize = 5;  // Максимальный размер сетки 5x5
     const maxCubeHeight = 4;          // ограничиваем максимальную высоту башни
     let isFlattened = false;  // Флаг для отслеживания режима сжатия высоты
@@ -320,14 +322,59 @@
         
         // Если паттерны очень похожи, увеличиваем счетчик схожести
         if (patternCurrent === patternPrevious) {
-            similarityScore += maxScore * 0.6;
+            similarityScore += maxScore * 0.7;
         } else {
+            // Проверяем процент совпадающих позиций
+            const currentPositions = new Set(currentTowers.map(t => `${t.x},${t.y}`));
+            const previousPositions = new Set(previousTowers.map(t => `${t.x},${t.y}`));
+            let commonPositions = 0;
+            
+            for (const pos of currentPositions) {
+                if (previousPositions.has(pos)) {
+                    commonPositions++;
+                }
+            }
+            
+            const positionSimilarity = commonPositions / Math.min(currentPositions.size, previousPositions.size);
+            if (positionSimilarity > 0.6) {
+                similarityScore += maxScore * 0.5;
+            }
+            
             // Проверяем совпадение по высотам
             const heightsCurrent = currentTowers.map(t => t.h).sort().join('|');
             const heightsPrevious = previousTowers.map(t => t.h).sort().join('|');
             
             if (heightsCurrent === heightsPrevious) {
                 similarityScore += maxScore * 0.4;
+            } else {
+                // Проверяем распределение высот
+                const currentHeightCounts = {};
+                const previousHeightCounts = {};
+                
+                currentTowers.forEach(t => {
+                    currentHeightCounts[t.h] = (currentHeightCounts[t.h] || 0) + 1;
+                });
+                
+                previousTowers.forEach(t => {
+                    previousHeightCounts[t.h] = (previousHeightCounts[t.h] || 0) + 1;
+                });
+                
+                let sameHeightDistribution = true;
+                const allHeights = new Set([
+                    ...Object.keys(currentHeightCounts), 
+                    ...Object.keys(previousHeightCounts)
+                ]);
+                
+                for (const h of allHeights) {
+                    if ((currentHeightCounts[h] || 0) !== (previousHeightCounts[h] || 0)) {
+                        sameHeightDistribution = false;
+                        break;
+                    }
+                }
+                
+                if (sameHeightDistribution) {
+                    similarityScore += maxScore * 0.3;
+                }
             }
             
             // Проверяем общую форму композиции
@@ -340,13 +387,39 @@
         }
         
         // Если счетчик схожести превышает порог, считаем композиции похожими
-        return (similarityScore / maxScore) > 0.6;
+        // Используем более строгий порог для определения схожести
+        return (similarityScore / maxScore) > 0.5;
+    }
+    
+    // Проверка схожести с историей композиций
+    function isSimilarToHistory(current) {
+        if (compositionHistory.length === 0) return false;
+        
+        // Проверяем схожесть с каждой композицией в истории
+        for (const historic of compositionHistory) {
+            if (areCompositionsSimilar(current, historic)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    // Добавление текущей композиции в историю
+    function addToHistory(composition) {
+        compositionHistory.push(JSON.parse(JSON.stringify(composition)));
+        
+        // Ограничиваем размер истории
+        if (compositionHistory.length > HISTORY_SIZE) {
+            compositionHistory.shift();  // Удаляем самую старую композицию
+        }
     }
     
     // Применяем случайную трансформацию к композиции для разнообразия
     function applyRandomTransformation(heights) {
         const newHeights = Array.from({length: maxGridSize}, () => Array(maxGridSize).fill(0));
-        const transformType = rand(1, 4);
+        // Увеличиваем количество вариантов трансформаций с 4 до 8
+        const transformType = rand(1, 8);
         
         switch (transformType) {
             case 1: 
@@ -358,6 +431,22 @@
                 }
                 break;
             case 2:
+                // Поворот на 180 градусов
+                for (let i = 0; i < maxGridSize; i++) {
+                    for (let j = 0; j < maxGridSize; j++) {
+                        newHeights[maxGridSize - 1 - i][maxGridSize - 1 - j] = heights[i][j];
+                    }
+                }
+                break;
+            case 3:
+                // Поворот на 270 градусов
+                for (let i = 0; i < maxGridSize; i++) {
+                    for (let j = 0; j < maxGridSize; j++) {
+                        newHeights[j][maxGridSize - 1 - i] = heights[i][j];
+                    }
+                }
+                break;
+            case 4:
                 // Отражение по горизонтали
                 for (let i = 0; i < maxGridSize; i++) {
                     for (let j = 0; j < maxGridSize; j++) {
@@ -365,7 +454,7 @@
                     }
                 }
                 break;
-            case 3:
+            case 5:
                 // Отражение по вертикали
                 for (let i = 0; i < maxGridSize; i++) {
                     for (let j = 0; j < maxGridSize; j++) {
@@ -373,14 +462,63 @@
                     }
                 }
                 break;
-            case 4:
-                // Диагональное отражение
+            case 6:
+                // Диагональное отражение (основная диагональ)
                 for (let i = 0; i < maxGridSize; i++) {
                     for (let j = 0; j < maxGridSize; j++) {
-                        if (i + j < maxGridSize) {
-                            newHeights[j][i] = heights[i][j];
-                        } else {
-                            newHeights[maxGridSize - 1 - j][maxGridSize - 1 - i] = heights[i][j];
+                        newHeights[j][i] = heights[i][j];
+                    }
+                }
+                break;
+            case 7:
+                // Диагональное отражение (побочная диагональ)
+                for (let i = 0; i < maxGridSize; i++) {
+                    for (let j = 0; j < maxGridSize; j++) {
+                        newHeights[maxGridSize - 1 - j][maxGridSize - 1 - i] = heights[i][j];
+                    }
+                }
+                break;
+            case 8:
+                // Случайное смещение всей композиции в допустимых пределах
+                // Находим границы занятой области
+                let minX = maxGridSize, minY = maxGridSize, maxX = 0, maxY = 0;
+                for (let i = 0; i < maxGridSize; i++) {
+                    for (let j = 0; j < maxGridSize; j++) {
+                        if (heights[i][j] > 0) {
+                            minX = Math.min(minX, i);
+                            minY = Math.min(minY, j);
+                            maxX = Math.max(maxX, i);
+                            maxY = Math.max(maxY, j);
+                        }
+                    }
+                }
+                
+                // Вычисляем доступное пространство для смещения
+                const width = maxX - minX + 1;
+                const height = maxY - minY + 1;
+                const maxDeltaX = maxGridSize - width;
+                const maxDeltaY = maxGridSize - height;
+                
+                if (maxDeltaX > 0 || maxDeltaY > 0) {
+                    const deltaX = maxDeltaX > 0 ? rand(0, maxDeltaX) - minX : -minX;
+                    const deltaY = maxDeltaY > 0 ? rand(0, maxDeltaY) - minY : -minY;
+                    
+                    // Смещаем композицию
+                    for (let i = 0; i < maxGridSize; i++) {
+                        for (let j = 0; j < maxGridSize; j++) {
+                            const srcI = i - deltaX;
+                            const srcJ = j - deltaY;
+                            
+                            if (srcI >= 0 && srcI < maxGridSize && srcJ >= 0 && srcJ < maxGridSize) {
+                                newHeights[i][j] = heights[srcI][srcJ];
+                            }
+                        }
+                    }
+                } else {
+                    // Если смещение невозможно, просто копируем оригинал
+                    for (let i = 0; i < maxGridSize; i++) {
+                        for (let j = 0; j < maxGridSize; j++) {
+                            newHeights[i][j] = heights[i][j];
                         }
                     }
                 }
@@ -388,7 +526,7 @@
         }
         
         // Необходимо проверить, чтобы трансформация сохраняла условие видимости
-        // Высокие башни должны быть дальше от наблюдателя
+        // и чтобы башни были соединены друг с другом
         let isValid = true;
         
         // Проверяем, не перекрывают ли высокие башни низкие с точки зрения наблюдателя
@@ -401,6 +539,7 @@
             }
         }
         
+        // Проверка на перекрытие
         for (let i = 0; i < towers.length; i++) {
             for (let j = 0; j < towers.length; j++) {
                 if (i === j) continue;
@@ -417,7 +556,45 @@
             if (!isValid) break;
         }
         
-        // Если трансформация нарушает условие видимости, используем оригинальную композицию
+        // Проверка на соединенность (все башни должны быть связаны друг с другом)
+        if (isValid && towers.length > 0) {
+            const visited = new Set();
+            const queue = [towers[0]];
+            
+            while (queue.length > 0) {
+                const current = queue.shift();
+                const key = `${current.x},${current.y}`;
+                
+                if (!visited.has(key)) {
+                    visited.add(key);
+                    
+                    // Добавляем соседние башни в очередь
+                    const neighbors = [
+                        {x: current.x + 1, y: current.y},
+                        {x: current.x - 1, y: current.y},
+                        {x: current.x, y: current.y + 1},
+                        {x: current.x, y: current.y - 1}
+                    ];
+                    
+                    for (const neighbor of neighbors) {
+                        if (newHeights[neighbor.x] && newHeights[neighbor.x][neighbor.y] > 0) {
+                            const neighborKey = `${neighbor.x},${neighbor.y}`;
+                            if (!visited.has(neighborKey)) {
+                                queue.push(neighbor);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Если не все башни были посещены, значит, они не соединены
+            if (visited.size !== towers.length) {
+                isValid = false;
+            }
+        }
+        
+        // Если трансформация нарушает условие видимости или соединенности, 
+        // используем оригинальную композицию
         return isValid ? newHeights : heights;
     }
 
@@ -436,34 +613,52 @@
         
         // Генерируем высоты колонок, избегая похожих композиций
         let result;
-        let maxAttempts = 3; // Ограничиваем количество попыток перегенерации
+        let maxAttempts = 5; // Увеличиваем количество попыток перегенерации
         let attempts = 0;
         let isSimilar = false;
         
         do {
             result = generateHeights(gridSize, targetCubes);
             attempts++;
-            isSimilar = areCompositionsSimilar(result.heights, previousHeights);
+            
+            // Проверяем схожесть с предыдущей композицией и с историей
+            isSimilar = areCompositionsSimilar(result.heights, previousHeights) || 
+                       isSimilarToHistory(result.heights);
             
             // Если композиция похожа и у нас еще есть попытки, пробуем применить трансформацию
             if (isSimilar && attempts <= maxAttempts) {
-                result.heights = applyRandomTransformation(result.heights);
-                // Пересчитываем количество кубиков после трансформации
-                result.cubes = 0;
-                for (let i = 0; i < gridSize; i++) {
-                    for (let j = 0; j < gridSize; j++) {
-                        result.cubes += result.heights[i][j];
+                // Применяем до 3 разных трансформаций, пытаясь найти уникальную композицию
+                for (let i = 0; i < 3; i++) {
+                    const transformedHeights = applyRandomTransformation(result.heights);
+                    
+                    // Если трансформация дала результат, отличный от исходного
+                    if (JSON.stringify(transformedHeights) !== JSON.stringify(result.heights)) {
+                        result.heights = transformedHeights;
+                        
+                        // Пересчитываем количество кубиков после трансформации
+                        result.cubes = 0;
+                        for (let i = 0; i < gridSize; i++) {
+                            for (let j = 0; j < gridSize; j++) {
+                                result.cubes += result.heights[i][j];
+                            }
+                        }
+                        
+                        // Проверяем еще раз после трансформации
+                        isSimilar = areCompositionsSimilar(result.heights, previousHeights) || 
+                                   isSimilarToHistory(result.heights);
+                        
+                        if (!isSimilar) break; // Если нашли уникальную композицию, выходим из цикла
                     }
                 }
-                
-                // Проверяем еще раз после трансформации
-                isSimilar = areCompositionsSimilar(result.heights, previousHeights);
             }
             
         } while (isSimilar && attempts < maxAttempts);
         
         // Сохраняем текущую композицию для следующего сравнения
         previousHeights = JSON.parse(JSON.stringify(result.heights));
+        // Добавляем в историю
+        addToHistory(result.heights);
+        
         currentHeights = result.heights;
         totalCubes = result.cubes;
         

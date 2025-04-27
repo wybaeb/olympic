@@ -201,7 +201,7 @@
         ctx.moveTo(points[0].x, points[0].y);
         for(let i=1; i<points.length; i++) {
             ctx.lineTo(points[i].x, points[i].y);
-        }
+    }
         ctx.closePath();
         ctx.fillStyle = '#f0f0f0';
         ctx.fill();
@@ -358,68 +358,103 @@
             remaining -= 1;
         }
         
-        // Случайно размещаем башни на сетке
-        const availablePositions = [];
-        for (let i = 0; i < gridSize; i++) {
-            for (let j = 0; j < gridSize; j++) {
-                availablePositions.push({x: i, y: j});
-            }
+        // Сортируем башни по высоте от высоких к низким
+        towers.sort((a, b) => b.height - a.height);
+        
+        // Размещаем башни на сетке по спирали с учетом высоты
+        // Начинаем с верхнего левого угла (дальше от наблюдателя)
+        // и двигаемся по спирали к правому нижнему (ближе к наблюдателю)
+        
+        // Определяем начальную позицию (верхний левый угол)
+        let startX = 0;
+        let startY = 0;
+        
+        // Размещаем первую (самую высокую) башню в начальной точке
+        if (towers.length > 0) {
+            towers[0].x = startX;
+            towers[0].y = startY;
         }
         
-        // Перемешиваем доступные позиции
-        shuffleArray(availablePositions);
-        
-        // Сначала размещаем башни
-        for (let i = 0; i < towers.length; i++) {
-            if (i < availablePositions.length) {
-                towers[i].x = availablePositions[i].x;
-                towers[i].y = availablePositions[i].y;
-            }
-        }
-        
-        // Теперь проверяем, не перекрывают ли высокие башни низкие
-        let swapsMade = true;
-        while (swapsMade) {
-            swapsMade = false;
+        // Размещаем остальные башни по соседству
+        if (towers.length > 1) {
+            // Создаем массив доступных соседних клеток
+            let availableCells = [];
             
-            for (let i = 0; i < towers.length; i++) {
-                for (let j = 0; j < towers.length; j++) {
-                    if (i === j) continue;
-                    
-                    const tower1 = towers[i];
-                    const tower2 = towers[j];
-                    
-                    // Если первая башня выше второй
-                    if (tower1.height > tower2.height) {
-                        // Проверяем, находится ли более высокая башня ближе к наблюдателю
-                        // Наблюдатель с противоположной стороны - чем больше сумма координат, тем ближе к наблюдателю
-                        const tower1Sum = tower1.x + tower1.y;
-                        const tower2Sum = tower2.x + tower2.y;
+            // Функция для добавления соседних клеток в список доступных
+            function addNeighborCells(x, y) {
+                const neighbors = [
+                    {x: x+1, y: y},   // справа
+                    {x: x, y: y+1},   // снизу
+                    {x: x-1, y: y},   // слева
+                    {x: x, y: y-1}    // сверху
+                ];
+                
+                for (const neighbor of neighbors) {
+                    // Проверяем, что клетка в пределах сетки
+                    if (neighbor.x >= 0 && neighbor.x < gridSize && 
+                        neighbor.y >= 0 && neighbor.y < gridSize) {
                         
-                        // Если высокая башня ближе к наблюдателю - меняем местами
-                        if (tower1Sum > tower2Sum) {
-                            // Меняем башни местами
-                            [tower1.x, tower2.x] = [tower2.x, tower1.x];
-                            [tower1.y, tower2.y] = [tower2.y, tower1.y];
-                            swapsMade = true;
+                        // Проверяем, что клетка не занята
+                        if (H[neighbor.x][neighbor.y] === 0) {
+                            
+                            // Проверяем, что эта клетка еще не в списке доступных
+                            if (!availableCells.some(cell => cell.x === neighbor.x && cell.y === neighbor.y)) {
+                                // Вычисляем приоритет для сортировки
+                                // Чем меньше сумма координат, тем дальше от наблюдателя
+                                const priority = neighbor.x + neighbor.y;
+                                availableCells.push({...neighbor, priority});
+                            }
                         }
                     }
                 }
+            }
+            
+            // Добавляем соседей первой башни
+            addNeighborCells(towers[0].x, towers[0].y);
+            
+            // Размещаем остальные башни
+            for (let i = 1; i < towers.length; i++) {
+                if (availableCells.length === 0) {
+                    console.log("Не удалось разместить все башни рядом друг с другом");
+                    break;
+                }
+                
+                // Сортируем доступные клетки по приоритету
+                // Для высоких башен выбираем клетки дальше от наблюдателя (с меньшим приоритетом)
+                availableCells.sort((a, b) => a.priority - b.priority);
+                
+                // Выбираем подходящую клетку в зависимости от высоты башни
+                let selectedCellIndex = 0;
+                if (towers[i].height > 1) {
+                    // Для высоких башен выбираем клетки дальше от наблюдателя
+                    selectedCellIndex = 0; // Клетка с наименьшей суммой координат
+                } else {
+                    // Для низких башен (высотой 1) можно выбрать любую доступную клетку
+                    selectedCellIndex = Math.min(availableCells.length - 1, Math.floor(availableCells.length / 2));
+                }
+                
+                const selectedCell = availableCells[selectedCellIndex];
+                
+                // Размещаем башню
+                towers[i].x = selectedCell.x;
+                towers[i].y = selectedCell.y;
+                
+                // Помечаем клетку как занятую
+                H[selectedCell.x][selectedCell.y] = towers[i].height;
+                
+                // Удаляем выбранную клетку из списка доступных
+                availableCells.splice(selectedCellIndex, 1);
+                
+                // Добавляем соседей текущей башни в список доступных
+                addNeighborCells(towers[i].x, towers[i].y);
             }
         }
         
         // Заполняем сетку высот из расположения башен
         for (const tower of towers) {
-            H[tower.x][tower.y] = tower.height;
-        }
-        
-        // Функция для случайного перемешивания массива
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
+            if (tower.x >= 0 && tower.y >= 0) {
+                H[tower.x][tower.y] = tower.height;
             }
-            return array;
         }
         
         // Подсчет фактического количества кубиков
@@ -450,8 +485,8 @@
             for(let j=0; j<gridSize; j++) {
                 if (currentHeights[i] && currentHeights[i][j] > 0) {
                     columns.push({i, j, h: currentHeights[i][j]});
-                }
             }
+        }
         }
         
         // Сортируем от дальних к ближним

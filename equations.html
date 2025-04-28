@@ -325,13 +325,30 @@
         emojiC.textContent = emojiMap['C'];
         emojiD.textContent = emojiMap['D'];
 
-        // Создаем уравнения
-        const equations = [
-            { left: ['A', 'A', 'B', 'B'], right: 2 * currentValues.A + 2 * currentValues.B },
-            { left: ['A', 'A', 'B', 'C'], right: 2 * currentValues.A + currentValues.B + currentValues.C },
-            { left: ['A', 'B', 'B', 'D'], right: currentValues.A + 2 * currentValues.B + currentValues.D },
-            { left: ['A', 'B', 'C', 'D'], right: currentValues.A + currentValues.B + currentValues.C + currentValues.D }
+        // ОПРЕДЕЛЕНИЕ ПАТТЕРНОВ ДЛЯ УРОВНЕЙ
+        const patternsLevel1 = [
+            [ ['A', 'A', 'B', 'B'], ['A', 'A', 'B', 'C'], ['A', 'B', 'B', 'D'], ['A', 'B', 'C', 'D'] ]
         ];
+        const patternsLevel2 = [
+            [ ['A', 'A', 'B', 'B'], ['B', 'B', 'C', 'C'], ['C', 'C', 'D', 'D'], ['A', 'B', 'C', 'D'] ]
+        ];
+        const patternsLevel4 = [
+            [ ['A', 'A', 'B', 'C'], ['B', 'B', 'D', 'A'], ['C', 'C', 'D', 'A'], ['D', 'D', 'C', 'B'] ]
+        ];
+        // Собираем доступные паттерны для текущего уровня
+        let availablePatterns = [...patternsLevel1];
+        if (currentLevel >= 2) availablePatterns = availablePatterns.concat(patternsLevel2);
+        if (currentLevel >= 4) availablePatterns = availablePatterns.concat(patternsLevel4);
+        // Выбираем случайный паттерн (набор из 4 строк)
+        const chosenPattern = shuffle([...availablePatterns])[0];
+        // Перемешиваем порядок уравнений внутри паттерна
+        const chosenRows = shuffle([...chosenPattern]);
+        // Формируем уравнения с динамическим вычислением правой части
+        const equations = chosenRows.map(leftArr => {
+            let right = 0;
+            leftArr.forEach(v => { right += currentValues[v]; });
+            return { left: shuffle([...leftArr]), right };
+        });
         
         // Перемешиваем уравнения и слагаемые только при создании нового уровня
         currentEquations = shuffle([...equations]).map(eq => {

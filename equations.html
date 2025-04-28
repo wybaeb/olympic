@@ -296,8 +296,8 @@
         answerB.focus();
 
         // Определяем диапазон для значений
-        const X = 5 + (currentLevel - 1);
-        const n = 4;
+        const X = 3 + (currentLevel - 1);
+        const n = 2;
         const min = X - n;
         const max = X + n;
 
@@ -436,12 +436,14 @@
             userD === currentValues.D) {
             // Правильный ответ
             successCount++;
+            progressEl.textContent = `${successCount}/3`;
             
             if (successCount >= 3) {
                 // Переход на следующий уровень
                 currentLevel++;
                 successCount = 0;
                 levelEl.textContent = currentLevel;
+                progressEl.textContent = `${successCount}/3`;
                 showMessage(`Поздравляем! Уровень ${currentLevel}`, 'level-up');
                 
                 // Обновляем хеш в URL
@@ -455,8 +457,8 @@
         } else {
             // Неправильный ответ
             successCount = 0;
-            showMessage('Неверно! Попробуйте еще раз', 'error');
             progressEl.textContent = `${successCount}/3`;
+            showMessage('Неверно! Попробуйте еще раз', 'error');
             
             // Задержка перед новым заданием
             setTimeout(createNewTask, 2500);

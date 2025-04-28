@@ -212,7 +212,7 @@
     <div class="progress">Прогресс: <span id="progress">0/3</span></div>
     <div class="hint-switch">
         <label class="switch">
-            <input type="checkbox" id="hintSwitch" checked>
+            <input type="checkbox" id="hintSwitch">
             <span class="slider"></span>
         </label>
         <span>Подсказки</span>
@@ -560,7 +560,10 @@
         // Обработчик переключателя подсказок
         hintSwitch.addEventListener('click', function() {
             console.log("Переключатель нажат");
-            setTimeout(updateHintsVisibility, 0);
+            setTimeout(() => {
+                updateHintsVisibility();
+                focusFirstEmptyInput();
+            }, 0);
         });
     }
 
@@ -582,6 +585,17 @@
         console.log("Обновление подсказок");
         displayEquations();
         updateHintsVisibility();
+    }
+
+    // Функция для установки фокуса на первое пустое поле ввода
+    function focusFirstEmptyInput() {
+        const inputs = [answerB, answerC, answerD];
+        for (const input of inputs) {
+            if (!input.value) {
+                input.focus();
+                break;
+            }
+        }
     }
 })();
 </script>

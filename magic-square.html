@@ -230,29 +230,39 @@
         }
         
         .main-check {
-            font-size: 1.2em;
+            font-size: 1.25em;
             padding: 1.1em 2.2em;
-            background-color: #FF9800;
+            background-color: #4CAF50 !important;
             color: #fff;
             border: none;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin: 0 auto;
+            display: block;
         }
         
         .main-check:hover {
-            background-color: #e68a00;
+            background-color: #388e3c !important;
+        }
+        
+        .ghost-btn {
+            background: none !important;
+            color: #2196F3 !important;
+            border: 1.5px solid #2196F3 !important;
+            box-shadow: none !important;
+            font-size: 1em;
+            padding: 0.5em 1.2em;
+            transition: background 0.2s, color 0.2s;
+        }
+        
+        .ghost-btn:hover {
+            background: #e3f2fd !important;
+            color: #1565c0 !important;
         }
         
         .small-btn {
             font-size: 0.95em;
             padding: 0.5em 1.2em;
-            background-color: #f5f5f5;
-            color: #333;
-            border: 1px solid #bbb;
-            box-shadow: none;
-        }
-        
-        .small-btn:hover {
-            background-color: #e0e0e0;
+            margin: 0;
         }
         
         .cell.selected {
@@ -293,10 +303,12 @@
         
         <div id="message-box"></div>
         
-        <div class="buttons">
+        <div class="buttons" style="display: flex; flex-direction: column; align-items: center; gap: 0.7em; margin-top:2em;">
             <button id="check-button" class="button check main-check"><span style='font-size:1.3em;vertical-align:middle;'>&#10004;</span> Проверить</button>
-            <button id="restart-button" class="button small-btn">Новое задание</button>
-            <a href="index.html" class="button home small-btn">На главную</a>
+            <div style="display: flex; gap: 0.7em; margin-top:0.5em;">
+                <button id="restart-button" class="button small-btn ghost-btn"><span style='font-size:1.1em;vertical-align:middle;'>&#8635;</span> Новое задание</button>
+                <a href="index.html" class="button home small-btn ghost-btn"><span style='font-size:1.1em;vertical-align:middle;'>&#8962;</span> На главную</a>
+            </div>
         </div>
     </div>
     

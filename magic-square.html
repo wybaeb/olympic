@@ -254,6 +254,18 @@
         .small-btn:hover {
             background-color: #e0e0e0;
         }
+        
+        .cell.selected {
+            outline: 3px solid #FF9800;
+            box-shadow: 0 0 0 4px #ffe0b2;
+            position: relative;
+            animation: blink-outline 1s steps(1) infinite;
+        }
+        @keyframes blink-outline {
+            0%, 50% { outline-color: #FF9800; }
+            51%, 100% { outline-color: #ffe0b2; }
+        }
+        .cell.selected::after { display: none !important; }
     </style>
 </head>
 <body>
@@ -308,6 +320,9 @@
         let magicSquare = Array(9).fill(0);
         let fixedCells = [];
         let targetSum = 0;
+        
+        // Для временного хранения ввода по каждой ячейке
+        let tempInputs = Array(9).fill("");
         
         // Загружаем сохраненный прогресс из URL или localStorage
         function loadGameState() {
@@ -479,45 +494,102 @@
                     cell.textContent = magicSquare[i];
                 } else {
                     cell.classList.add('editable');
-                    if (magicSquare[i] !== 0) {
+                    if (selectedCell === i && tempInputs[i] !== "") {
+                        cell.textContent = tempInputs[i];
+                    } else if (magicSquare[i] !== 0) {
                         cell.textContent = magicSquare[i];
+                    } else {
+                        cell.textContent = '';
                     }
                 }
                 
                 // Добавляем обработчик событий только для редактируемых ячеек
                 if (!fixedCells.includes(i)) {
                     cell.addEventListener('click', () => {
-                        if (selectedCell) {
+                        if (selectedCell !== null && selectedCell !== i) {
+                            // При смене ячейки сохраняем предыдущее значение
+                            commitTempInput(selectedCell);
+                        }
+                        if (selectedCell !== null) {
                             document.querySelector(`.cell[data-index="${selectedCell}"]`).classList.remove('selected');
                         }
                         selectedCell = i;
                         cell.classList.add('selected');
+                        // Показываем tempInput
+                        updateSquareUI();
                     });
+                }
+                
+                if (selectedCell === i) {
+                    cell.classList.add('selected');
                 }
                 
                 squareElement.appendChild(cell);
             }
         }
         
-        // Добавим обработчик keydown для ввода числа в выбранную ячейку
+        // Сохраняет tempInput в magicSquare, если валидно
+        function commitTempInput(index) {
+            let str = tempInputs[index];
+            if (!str) return;
+            let value = parseInt(str);
+            if (isNaN(value)) return;
+            // Проверяем уникальность
+            let used = magicSquare.slice();
+            used[index] = 0; // разрешаем перезаписать свою же ячейку
+            if (used.includes(value)) {
+                showMessage(`Число ${value} уже используется`, "error");
+                tempInputs[index] = "";
+                return;
+            }
+            magicSquare[index] = value;
+            tempInputs[index] = "";
+        }
+        
+        // Обработчик keydown для ввода числа в выбранную ячейку
         document.addEventListener('keydown', function(e) {
             if (selectedCell !== null && !fixedCells.includes(selectedCell)) {
-                let value = parseInt(e.key);
-                if (!isNaN(value)) {
-                    // Проверяем, используется ли уже это число
-                    if (magicSquare.includes(value)) {
-                        showMessage(`Число ${value} уже используется`, "error");
-                        return;
-                    }
-                    magicSquare[selectedCell] = value;
+                // Если Enter — сохранить
+                if (e.key === 'Enter') {
+                    commitTempInput(selectedCell);
                     updateSquareUI();
-                    document.querySelector(`.cell[data-index="${selectedCell}"]`).classList.add('selected');
+                    return;
                 }
+                // Если Backspace — удалить последний символ
+                if (e.key === 'Backspace') {
+                    tempInputs[selectedCell] = tempInputs[selectedCell].slice(0, -1);
+                    updateSquareUI();
+                    return;
+                }
+                // Если цифра — добавить к tempInput
+                if (/\d/.test(e.key)) {
+                    tempInputs[selectedCell] += e.key;
+                    // Ограничим длину до 2 символов
+                    if (tempInputs[selectedCell].length > 2) {
+                        tempInputs[selectedCell] = tempInputs[selectedCell].slice(0, 2);
+                    }
+                    updateSquareUI();
+                    return;
+                }
+            }
+        });
+        
+        // При клике вне ячейки — сохраняем tempInput
+        document.addEventListener('click', function(e) {
+            const cell = e.target.closest('.cell');
+            if (!cell && selectedCell !== null) {
+                commitTempInput(selectedCell);
+                selectedCell = null;
+                updateSquareUI();
             }
         });
         
         // Обработчик кнопки "Проверить"
         document.getElementById('check-button').addEventListener('click', () => {
+            // Сохраняем все tempInputs
+            for (let i = 0; i < 9; i++) {
+                commitTempInput(i);
+            }
             if (checkSolution()) {
                 showMessage("Правильно! Вы решили магический квадрат!", "success");
                 
@@ -557,6 +629,7 @@
         function startNewPuzzle() {
             generateMagicSquare();
             selectedCell = null;
+            tempInputs = Array(9).fill("");
             updateSquareUI();
             document.getElementById('message-box').innerHTML = '';
         }

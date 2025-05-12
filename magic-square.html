@@ -317,12 +317,8 @@
     </footer>
     
     <script>
-        // Основные параметры игры
-        const LEVELS = [
-            { targetSum: [8, 9, 10, 11, 12], name: "1" },
-            { targetSum: [11], name: "2" },
-            { targetSum: [12], name: "3" }
-        ];
+        // --- Удаляем LEVELS, используем только currentLevel ---
+        // const LEVELS = ... (удалить)
         const PUZZLES_PER_LEVEL = 3;
         
         // Состояние игры
@@ -332,8 +328,6 @@
         let magicSquare = Array(9).fill(0);
         let fixedCells = [];
         let targetSum = 0;
-        
-        // Для временного хранения ввода по каждой ячейке
         let tempInputs = Array(9).fill("");
         
         // Загружаем сохраненный прогресс из URL или localStorage
@@ -343,7 +337,7 @@
                 try {
                     const decoded = atob(hash);
                     const [level, completed] = decoded.split('-').map(Number);
-                    if (!isNaN(level) && !isNaN(completed) && level >= 0 && level < LEVELS.length && completed >= 0) {
+                    if (!isNaN(level) && !isNaN(completed) && level >= 0 && completed >= 0) {
                         currentLevel = level;
                         puzzlesCompleted = completed;
                     }
@@ -362,8 +356,7 @@
         
         // Обновляем индикаторы прогресса
         function updateProgressUI() {
-            document.getElementById('current-level').textContent = LEVELS[currentLevel].name;
-            
+            document.getElementById('current-level').textContent = (currentLevel + 1);
             // Обновляем точки прогресса
             for (let i = 1; i <= 3; i++) {
                 const dot = document.getElementById(`dot-${i}`);
@@ -598,37 +591,18 @@
         
         // Обработчик кнопки "Проверить"
         document.getElementById('check-button').addEventListener('click', () => {
-            // Сохраняем все tempInputs
-            for (let i = 0; i < 9; i++) {
-                commitTempInput(i);
-            }
+            for (let i = 0; i < 9; i++) commitTempInput(i);
             if (checkSolution()) {
                 showMessage("Правильно! Вы решили магический квадрат!", "success");
-                
-                // Обновляем прогресс
                 puzzlesCompleted++;
-                
                 if (puzzlesCompleted >= PUZZLES_PER_LEVEL) {
-                    // Переходим на следующий уровень
                     puzzlesCompleted = 0;
                     currentLevel++;
-                    
-                    if (currentLevel >= LEVELS.length) {
-                        // Все уровни пройдены
-                        showMessage("Поздравляем! Вы прошли все уровни!", "success");
-                        currentLevel = LEVELS.length - 1;
-                    } else {
-                        showMessage(`Поздравляем! Вы перешли на уровень ${LEVELS[currentLevel].name}`, "success");
-                    }
+                    showMessage(`Поздравляем! Вы перешли на уровень ${currentLevel + 1}`, "success");
                 }
-                
                 saveGameState();
                 updateProgressUI();
-                
-                // Создаем новое задание через 3 секунды
-                setTimeout(() => {
-                    startNewPuzzle();
-                }, 3000);
+                setTimeout(() => { startNewPuzzle(); }, 3000);
             } else {
                 showMessage("Неправильно. Проверьте суммы по строкам и столбцам.", "error");
             }

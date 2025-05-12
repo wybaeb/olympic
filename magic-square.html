@@ -228,6 +228,32 @@
                 grid-template-columns: repeat(3, 50px);
             }
         }
+        
+        .main-check {
+            font-size: 1.2em;
+            padding: 1.1em 2.2em;
+            background-color: #FF9800;
+            color: #fff;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .main-check:hover {
+            background-color: #e68a00;
+        }
+        
+        .small-btn {
+            font-size: 0.95em;
+            padding: 0.5em 1.2em;
+            background-color: #f5f5f5;
+            color: #333;
+            border: 1px solid #bbb;
+            box-shadow: none;
+        }
+        
+        .small-btn:hover {
+            background-color: #e0e0e0;
+        }
     </style>
 </head>
 <body>
@@ -237,7 +263,7 @@
     
     <div class="container">
         <div class="game-info">
-            <p>Заполните пустые ячейки числами от 1 до 9 так, чтобы сумма чисел по всем строкам и столбцам была одинаковой. Используйте логику и вычисления, исходя из уже заполненных ячеек. Каждое число можно использовать только один раз.</p>
+            <p>Заполните пустые ячейки уникальными числами так, чтобы сумма по всем строкам и столбцам была одинаковой. Используйте только уникальные числа, подходящие для данного уровня.</p>
         </div>
         
         <div class="level-progress">
@@ -253,24 +279,12 @@
             <!-- Ячейки будут добавлены с помощью JavaScript -->
         </div>
         
-        <div class="numpad" id="numpad">
-            <div class="numpad-button" data-value="1">1</div>
-            <div class="numpad-button" data-value="2">2</div>
-            <div class="numpad-button" data-value="3">3</div>
-            <div class="numpad-button" data-value="4">4</div>
-            <div class="numpad-button" data-value="5">5</div>
-            <div class="numpad-button" data-value="6">6</div>
-            <div class="numpad-button" data-value="7">7</div>
-            <div class="numpad-button" data-value="8">8</div>
-            <div class="numpad-button" data-value="9">9</div>
-        </div>
-        
         <div id="message-box"></div>
         
         <div class="buttons">
-            <button id="check-button" class="button check">Проверить</button>
-            <button id="restart-button" class="button">Новое задание</button>
-            <a href="index.html" class="button home">На главную</a>
+            <button id="check-button" class="button check main-check"><span style='font-size:1.3em;vertical-align:middle;'>&#10004;</span> Проверить</button>
+            <button id="restart-button" class="button small-btn">Новое задание</button>
+            <a href="index.html" class="button home small-btn">На главную</a>
         </div>
     </div>
     
@@ -485,87 +499,22 @@
             }
         }
         
-        // Обрабатываем нажатие на кнопки клавиатуры
-        function setupNumpad() {
-            const numpadButtons = document.querySelectorAll('.numpad-button');
-            numpadButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    if (selectedCell !== null && !fixedCells.includes(selectedCell)) {
-                        const value = parseInt(button.dataset.value);
-                        
-                        // Проверяем, используется ли уже это число
-                        if (magicSquare.includes(value)) {
-                            showMessage(`Число ${value} уже используется`, "error");
-                            return;
-                        }
-                        
-                        // Проверяем, не противоречит ли это число правилам магического квадрата
-                        const row = Math.floor(selectedCell / 3);
-                        const col = selectedCell % 3;
-                        
-                        // Проверяем строку
-                        let rowFixed = [];
-                        for (let i = 0; i < 3; i++) {
-                            const index = row * 3 + i;
-                            if (fixedCells.includes(index)) {
-                                rowFixed.push({ index, value: magicSquare[index] });
-                            } else if (index !== selectedCell && magicSquare[index] !== 0) {
-                                rowFixed.push({ index, value: magicSquare[index] });
-                            }
-                        }
-                        
-                        // Проверяем столбец
-                        let colFixed = [];
-                        for (let i = 0; i < 3; i++) {
-                            const index = i * 3 + col;
-                            if (fixedCells.includes(index)) {
-                                colFixed.push({ index, value: magicSquare[index] });
-                            } else if (index !== selectedCell && magicSquare[index] !== 0) {
-                                colFixed.push({ index, value: magicSquare[index] });
-                            }
-                        }
-                        
-                        // Если в строке или столбце уже 2 ячейки заполнены, проверяем сумму
-                        let isValid = true;
-                        if (rowFixed.length === 2) {
-                            const rowSum = rowFixed.reduce((sum, cell) => sum + cell.value, 0) + value;
-                            
-                            // Если это первая полностью заполняемая строка или столбец, запоминаем сумму
-                            if (!targetSum) {
-                                targetSum = rowSum;
-                            } else if (rowSum !== targetSum) {
-                                isValid = false;
-                                showMessage(`Сумма в строке ${row + 1} должна быть равна ${targetSum}`, "error");
-                            }
-                        }
-                        
-                        if (colFixed.length === 2 && isValid) {
-                            const colSum = colFixed.reduce((sum, cell) => sum + cell.value, 0) + value;
-                            
-                            // Если это первая полностью заполняемая строка или столбец, запоминаем сумму
-                            if (!targetSum) {
-                                targetSum = colSum;
-                            } else if (colSum !== targetSum) {
-                                isValid = false;
-                                showMessage(`Сумма в столбце ${col + 1} должна быть равна ${targetSum}`, "error");
-                            }
-                        }
-                        
-                        if (!isValid) {
-                            return;
-                        }
-                        
-                        magicSquare[selectedCell] = value;
-                        updateSquareUI();
-                        
-                        // Сохраняем выделение ячейки
-                        document.querySelector(`.cell[data-index="${selectedCell}"]`).classList.add('selected');
-                    } else if (selectedCell === null) {
-                        showMessage("Сначала выберите ячейку", "error");
+        // Добавим обработчик keydown для ввода числа в выбранную ячейку
+        document.addEventListener('keydown', function(e) {
+            if (selectedCell !== null && !fixedCells.includes(selectedCell)) {
+                let value = parseInt(e.key);
+                if (!isNaN(value)) {
+                    // Проверяем, используется ли уже это число
+                    if (magicSquare.includes(value)) {
+                        showMessage(`Число ${value} уже используется`, "error");
+                        return;
                     }
-                });
-            });
-        }
+                    magicSquare[selectedCell] = value;
+                    updateSquareUI();
+                    document.querySelector(`.cell[data-index="${selectedCell}"]`).classList.add('selected');
+                }
+            }
+        });
         
         // Обработчик кнопки "Проверить"
         document.getElementById('check-button').addEventListener('click', () => {
@@ -615,7 +564,6 @@
         // Инициализация игры
         function initGame() {
             loadGameState();
-            setupNumpad();
             startNewPuzzle();
         }
         

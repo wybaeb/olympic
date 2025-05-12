@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Магический квадрат - Развивающие игры</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        header {
+            background-color: #2196F3;
+            color: white;
+            text-align: center;
+            padding: 1.5rem 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .game-info {
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        
+        .magic-square {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 10px;
+            margin: 0 auto;
+            max-width: 330px;
+        }
+        
+        .cell {
+            background-color: white;
+            border: 2px solid #2196F3;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        
+        .fixed {
+            background-color: #e3f2fd;
+        }
+        
+        .editable {
+            cursor: pointer;
+        }
+        
+        .editable:hover {
+            background-color: #f0f8ff;
+        }
+        
+        .selected {
+            background-color: #bbdefb;
+        }
+        
+        .correct {
+            border-color: #4CAF50;
+        }
+        
+        .wrong {
+            border-color: #F44336;
+        }
+        
+        .sum-display {
+            display: flex;
+            justify-content: center;
+            margin: 1rem 0;
+            font-size: 1.2rem;
+        }
+        
+        .buttons {
+            margin: 2rem 0;
+        }
+        
+        .button {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 0 0.5rem;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s;
+        }
+        
+        .button:hover {
+            background-color: #45a049;
+        }
+        
+        .button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .button.home {
+            background-color: #2196F3;
+        }
+        
+        .button.home:hover {
+            background-color: #0b7dda;
+        }
+        
+        .button.check {
+            background-color: #FF9800;
+        }
+        
+        .button.check:hover {
+            background-color: #e68a00;
+        }
+        
+        .numpad {
+            display: grid;
+            grid-template-columns: repeat(3, 60px);
+            gap: 10px;
+            margin: 1rem auto;
+            max-width: 200px;
+        }
+        
+        .numpad-button {
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 0.5rem 0;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .numpad-button:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .level-progress {
+            display: flex;
+            justify-content: center;
+            margin: 1.5rem 0;
+        }
+        
+        .level-indicator {
+            margin: 0 1rem;
+            font-weight: bold;
+        }
+        
+        .progress-dots {
+            display: flex;
+            align-items: center;
+        }
+        
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #ddd;
+            margin: 0 5px;
+        }
+        
+        .dot.completed {
+            background-color: #4CAF50;
+        }
+        
+        .message {
+            margin: 1rem 0;
+            padding: 1rem;
+            border-radius: 5px;
+            animation: fadeIn 0.5s;
+        }
+        
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 1rem 0;
+            margin-top: 2rem;
+        }
+        
+        @media (max-width: 600px) {
+            .magic-square {
+                grid-template-columns: repeat(3, 80px);
+                grid-template-rows: repeat(3, 80px);
+                max-width: 270px;
+            }
+            
+            .cell {
+                font-size: 1.5rem;
+            }
+            
+            .numpad {
+                grid-template-columns: repeat(3, 50px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Магический квадрат</h1>
+    </header>
+    
+    <div class="container">
+        <div class="game-info">
+            <p>Заполните пустые ячейки числами от 1 до 9 так, чтобы сумма чисел по всем строкам и столбцам была одинаковой. Используйте логику и вычисления, исходя из уже заполненных ячеек. Каждое число можно использовать только один раз.</p>
+        </div>
+        
+        <div class="level-progress">
+            <div class="level-indicator">Уровень: <span id="current-level">1</span></div>
+            <div class="progress-dots">
+                <div class="dot" id="dot-1"></div>
+                <div class="dot" id="dot-2"></div>
+                <div class="dot" id="dot-3"></div>
+            </div>
+        </div>
+        
+        <div class="magic-square" id="magic-square">
+            <!-- Ячейки будут добавлены с помощью JavaScript -->
+        </div>
+        
+        <div class="numpad" id="numpad">
+            <div class="numpad-button" data-value="1">1</div>
+            <div class="numpad-button" data-value="2">2</div>
+            <div class="numpad-button" data-value="3">3</div>
+            <div class="numpad-button" data-value="4">4</div>
+            <div class="numpad-button" data-value="5">5</div>
+            <div class="numpad-button" data-value="6">6</div>
+            <div class="numpad-button" data-value="7">7</div>
+            <div class="numpad-button" data-value="8">8</div>
+            <div class="numpad-button" data-value="9">9</div>
+        </div>
+        
+        <div id="message-box"></div>
+        
+        <div class="buttons">
+            <button id="check-button" class="button check">Проверить</button>
+            <button id="restart-button" class="button">Новое задание</button>
+            <a href="index.html" class="button home">На главную</a>
+        </div>
+    </div>
+    
+    <footer>
+        <p>&copy; 2025 Развивающие игры. Все права защищены.</p>
+    </footer>
+    
+    <script>
+        // Основные параметры игры
+        const LEVELS = [
+            { targetSum: [8, 9, 10, 11, 12], name: "1" },
+            { targetSum: [11], name: "2" },
+            { targetSum: [12], name: "3" }
+        ];
+        const PUZZLES_PER_LEVEL = 3;
+        
+        // Состояние игры
+        let currentLevel = 0;
+        let puzzlesCompleted = 0;
+        let selectedCell = null;
+        let magicSquare = Array(9).fill(0);
+        let fixedCells = [];
+        let targetSum = 0;
+        
+        // Загружаем сохраненный прогресс из URL или localStorage
+        function loadGameState() {
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                try {
+                    const decoded = atob(hash);
+                    const [level, completed] = decoded.split('-').map(Number);
+                    if (!isNaN(level) && !isNaN(completed) && level >= 0 && level < LEVELS.length && completed >= 0) {
+                        currentLevel = level;
+                        puzzlesCompleted = completed;
+                    }
+                } catch(e) {
+                    console.error("Invalid hash:", e);
+                }
+            }
+            updateProgressUI();
+        }
+        
+        // Сохраняем прогресс в URL
+        function saveGameState() {
+            const encoded = btoa(`${currentLevel}-${puzzlesCompleted}`);
+            window.location.hash = encoded;
+        }
+        
+        // Обновляем индикаторы прогресса
+        function updateProgressUI() {
+            document.getElementById('current-level').textContent = LEVELS[currentLevel].name;
+            
+            // Обновляем точки прогресса
+            for (let i = 1; i <= 3; i++) {
+                const dot = document.getElementById(`dot-${i}`);
+                if (i <= puzzlesCompleted) {
+                    dot.classList.add('completed');
+                } else {
+                    dot.classList.remove('completed');
+                }
+            }
+        }
+        
+        // Генерируем случайное число в диапазоне
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+        
+        // Базовый квадрат Ло Шу
+        const baseLoShu = [
+            [8, 1, 6],
+            [3, 5, 7],
+            [4, 9, 2]
+        ];
+
+        // Генерируем магический квадрат с флипами и сдвигом
+        function generateMagicSquare() {
+            // 1. Сдвиг по уровню
+            const shift = currentLevel; // 0 для первого уровня, 1 для второго и т.д.
+            let square = baseLoShu.map(row => row.map(v => v + shift));
+
+            // 2. Случайные флипы
+            if (Math.random() < 0.5) {
+                // Флип по горизонтали
+                square = square.reverse();
+            }
+            if (Math.random() < 0.5) {
+                // Флип по вертикали
+                square = square.map(row => row.slice().reverse());
+            }
+
+            // 3. Преобразуем в плоский массив для удобства
+            let flat = [];
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    flat.push(square[r][c]);
+                }
+            }
+            magicSquare = [...flat];
+
+            // 4. Определяем, какие ячейки будут предзаполнены (5 ячеек)
+            // До 6 уровня центр не скрываем
+            let allCells = Array.from({ length: 9 }, (_, i) => i);
+            if (currentLevel < 5) {
+                // Центр не скрываем
+                allCells = allCells.filter(i => i !== 4);
+            }
+            // Выбираем 4 случайные ячейки для скрытия
+            let hidden = [];
+            let available = allCells.slice();
+            for (let i = 0; i < 4; i++) {
+                const idx = Math.floor(Math.random() * available.length);
+                hidden.push(available[idx]);
+                available.splice(idx, 1);
+            }
+            // Остальные ячейки фиксированные
+            fixedCells = Array.from({ length: 9 }, (_, i) => i).filter(i => !hidden.includes(i));
+            // Очищаем скрытые ячейки
+            for (let i of hidden) {
+                magicSquare[i] = 0;
+            }
+        }
+        
+        // Проверяет, что все суммы по строкам и столбцам равны целевой сумме
+        function checkSolution() {
+            // Проверяем, что все ячейки заполнены
+            if (magicSquare.includes(0)) {
+                showMessage("Заполните все пустые ячейки!", "error");
+                return false;
+            }
+            
+            // Находим суммы по строкам
+            let rowSums = [];
+            for (let row = 0; row < 3; row++) {
+                let sum = 0;
+                for (let col = 0; col < 3; col++) {
+                    sum += magicSquare[row * 3 + col];
+                }
+                rowSums.push(sum);
+            }
+            
+            // Находим суммы по столбцам
+            let colSums = [];
+            for (let col = 0; col < 3; col++) {
+                let sum = 0;
+                for (let row = 0; row < 3; row++) {
+                    sum += magicSquare[row * 3 + col];
+                }
+                colSums.push(sum);
+            }
+            
+            // Проверяем, что все суммы одинаковы
+            const firstSum = rowSums[0];
+            for (let i = 1; i < rowSums.length; i++) {
+                if (rowSums[i] !== firstSum) {
+                    return false;
+                }
+            }
+            
+            for (let i = 0; i < colSums.length; i++) {
+                if (colSums[i] !== firstSum) {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        // Отображает сообщение пользователю
+        function showMessage(text, type) {
+            const messageBox = document.getElementById('message-box');
+            messageBox.innerHTML = `<div class="message ${type}">${text}</div>`;
+            
+            // Автоматически скрываем сообщение через 5 секунд
+            setTimeout(() => {
+                messageBox.innerHTML = '';
+            }, 5000);
+        }
+        
+        // Обновляет отображение магического квадрата
+        function updateSquareUI() {
+            const squareElement = document.getElementById('magic-square');
+            squareElement.innerHTML = '';
+            
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.index = i;
+                
+                if (fixedCells.includes(i)) {
+                    cell.classList.add('fixed');
+                    cell.textContent = magicSquare[i];
+                } else {
+                    cell.classList.add('editable');
+                    if (magicSquare[i] !== 0) {
+                        cell.textContent = magicSquare[i];
+                    }
+                }
+                
+                // Добавляем обработчик событий только для редактируемых ячеек
+                if (!fixedCells.includes(i)) {
+                    cell.addEventListener('click', () => {
+                        if (selectedCell) {
+                            document.querySelector(`.cell[data-index="${selectedCell}"]`).classList.remove('selected');
+                        }
+                        selectedCell = i;
+                        cell.classList.add('selected');
+                    });
+                }
+                
+                squareElement.appendChild(cell);
+            }
+        }
+        
+        // Обрабатываем нажатие на кнопки клавиатуры
+        function setupNumpad() {
+            const numpadButtons = document.querySelectorAll('.numpad-button');
+            numpadButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    if (selectedCell !== null && !fixedCells.includes(selectedCell)) {
+                        const value = parseInt(button.dataset.value);
+                        
+                        // Проверяем, используется ли уже это число
+                        if (magicSquare.includes(value)) {
+                            showMessage(`Число ${value} уже используется`, "error");
+                            return;
+                        }
+                        
+                        // Проверяем, не противоречит ли это число правилам магического квадрата
+                        const row = Math.floor(selectedCell / 3);
+                        const col = selectedCell % 3;
+                        
+                        // Проверяем строку
+                        let rowFixed = [];
+                        for (let i = 0; i < 3; i++) {
+                            const index = row * 3 + i;
+                            if (fixedCells.includes(index)) {
+                                rowFixed.push({ index, value: magicSquare[index] });
+                            } else if (index !== selectedCell && magicSquare[index] !== 0) {
+                                rowFixed.push({ index, value: magicSquare[index] });
+                            }
+                        }
+                        
+                        // Проверяем столбец
+                        let colFixed = [];
+                        for (let i = 0; i < 3; i++) {
+                            const index = i * 3 + col;
+                            if (fixedCells.includes(index)) {
+                                colFixed.push({ index, value: magicSquare[index] });
+                            } else if (index !== selectedCell && magicSquare[index] !== 0) {
+                                colFixed.push({ index, value: magicSquare[index] });
+                            }
+                        }
+                        
+                        // Если в строке или столбце уже 2 ячейки заполнены, проверяем сумму
+                        let isValid = true;
+                        if (rowFixed.length === 2) {
+                            const rowSum = rowFixed.reduce((sum, cell) => sum + cell.value, 0) + value;
+                            
+                            // Если это первая полностью заполняемая строка или столбец, запоминаем сумму
+                            if (!targetSum) {
+                                targetSum = rowSum;
+                            } else if (rowSum !== targetSum) {
+                                isValid = false;
+                                showMessage(`Сумма в строке ${row + 1} должна быть равна ${targetSum}`, "error");
+                            }
+                        }
+                        
+                        if (colFixed.length === 2 && isValid) {
+                            const colSum = colFixed.reduce((sum, cell) => sum + cell.value, 0) + value;
+                            
+                            // Если это первая полностью заполняемая строка или столбец, запоминаем сумму
+                            if (!targetSum) {
+                                targetSum = colSum;
+                            } else if (colSum !== targetSum) {
+                                isValid = false;
+                                showMessage(`Сумма в столбце ${col + 1} должна быть равна ${targetSum}`, "error");
+                            }
+                        }
+                        
+                        if (!isValid) {
+                            return;
+                        }
+                        
+                        magicSquare[selectedCell] = value;
+                        updateSquareUI();
+                        
+                        // Сохраняем выделение ячейки
+                        document.querySelector(`.cell[data-index="${selectedCell}"]`).classList.add('selected');
+                    } else if (selectedCell === null) {
+                        showMessage("Сначала выберите ячейку", "error");
+                    }
+                });
+            });
+        }
+        
+        // Обработчик кнопки "Проверить"
+        document.getElementById('check-button').addEventListener('click', () => {
+            if (checkSolution()) {
+                showMessage("Правильно! Вы решили магический квадрат!", "success");
+                
+                // Обновляем прогресс
+                puzzlesCompleted++;
+                
+                if (puzzlesCompleted >= PUZZLES_PER_LEVEL) {
+                    // Переходим на следующий уровень
+                    puzzlesCompleted = 0;
+                    currentLevel++;
+                    
+                    if (currentLevel >= LEVELS.length) {
+                        // Все уровни пройдены
+                        showMessage("Поздравляем! Вы прошли все уровни!", "success");
+                        currentLevel = LEVELS.length - 1;
+                    } else {
+                        showMessage(`Поздравляем! Вы перешли на уровень ${LEVELS[currentLevel].name}`, "success");
+                    }
+                }
+                
+                saveGameState();
+                updateProgressUI();
+                
+                // Создаем новое задание через 3 секунды
+                setTimeout(() => {
+                    startNewPuzzle();
+                }, 3000);
+            } else {
+                showMessage("Неправильно. Проверьте суммы по строкам и столбцам.", "error");
+            }
+        });
+        
+        // Обработчик кнопки "Новое задание"
+        document.getElementById('restart-button').addEventListener('click', startNewPuzzle);
+        
+        // Запускаем новое задание
+        function startNewPuzzle() {
+            generateMagicSquare();
+            selectedCell = null;
+            updateSquareUI();
+            document.getElementById('message-box').innerHTML = '';
+        }
+        
+        // Инициализация игры
+        function initGame() {
+            loadGameState();
+            setupNumpad();
+            startNewPuzzle();
+        }
+        
+        // Запускаем игру
+        window.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html> 

@@ -711,23 +711,23 @@
         let remaining = targetCubes;
         
         // Определяем максимальную высоту башни в зависимости от уровня
-        // Базовая высота 4 для начальных уровней, далее растет с уровнем
+        // Ограничиваем высоту для более плоских композиций
         const maxTowerHeight = Math.min(
-            Math.max(3, Math.floor(currentLevel / 25) + 3), 
-            Math.ceil(targetCubes / 4)
+            Math.max(2, Math.floor(currentLevel / 20) + 2), 
+            Math.ceil(targetCubes / 5)
         );
         
         // Создаем башни разной высоты
         const towers = [];
         
-        // Генерируем до 12 башен разной высоты, но для высоких уровней увеличиваем лимит
-        const maxTowers = Math.min(Math.max(15, Math.floor(currentLevel / 10) + 15), Math.ceil(targetCubes * 0.7));
+        // Генерируем больше башен для более плоских композиций
+        const maxTowers = Math.min(Math.max(14, Math.floor(currentLevel / 12) + 14), Math.ceil(targetCubes * 0.65));
         
         // Генерируем башни, начиная с самых высоких
         let currentHeight = maxTowerHeight;
         while (remaining > 0 && towers.length < maxTowers) {
             // Высота новой башни
-            const height = Math.min(remaining, Math.max(1, Math.min(currentHeight, Math.floor(targetCubes / (maxTowers * 0.7)))));
+            const height = Math.min(remaining, Math.max(1, Math.min(currentHeight, Math.floor(targetCubes / (maxTowers * 0.6)))));
             
             towers.push({
                 height: height,
@@ -737,8 +737,8 @@
             
             remaining -= height;
             
-            // Уменьшаем высоту для следующей башни более агрессивно
-            currentHeight = Math.max(1, currentHeight - (Math.random() > 0.3 ? 1 : 0));
+            // Уменьшаем высоту для следующей башни с балансом между резким и плавным снижением
+            currentHeight = Math.max(1, currentHeight - (Math.random() > 0.5 ? 1 : 0));
             if (currentHeight === 1 && remaining > maxTowers - towers.length) {
                 currentHeight = 2; // Увеличиваем минимальную высоту, если осталось много кубиков
             }

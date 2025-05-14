@@ -191,7 +191,7 @@
     let compositionHistory = [];  // История последних композиций
     const HISTORY_SIZE = 5;       // Хранить последние 5 композиций
     const maxGridSize = 5;  // Максимальный размер сетки 5x5
-    const maxCubeHeight = 4;          // ограничиваем максимальную высоту башни
+    // Максимальная высота башни теперь зависит от уровня и будет вычисляться динамически
     let isFlattened = false;  // Флаг для отслеживания режима сжатия высоты
     const SECRET_KEY = "cub3C0unt!ng2023"; // Секретный ключ для шифрования уровня
 
@@ -710,20 +710,24 @@
         let H = Array.from({length: gridSize}, () => Array(gridSize).fill(0));
         let remaining = targetCubes;
         
-        // Определяем максимальную высоту башни
-        const maxTowerHeight = Math.min(Math.ceil(targetCubes / 3), maxCubeHeight);
+        // Определяем максимальную высоту башни в зависимости от уровня
+        // Базовая высота 4 для начальных уровней, далее растет с уровнем
+        const maxTowerHeight = Math.min(
+            Math.max(3, Math.floor(currentLevel / 25) + 3), 
+            Math.ceil(targetCubes / 4)
+        );
         
         // Создаем башни разной высоты
         const towers = [];
         
-        // Генерируем до 12 башен разной высоты
-        const maxTowers = Math.min(12, Math.ceil(targetCubes / 2));
+        // Генерируем до 12 башен разной высоты, но для высоких уровней увеличиваем лимит
+        const maxTowers = Math.min(Math.max(15, Math.floor(currentLevel / 10) + 15), Math.ceil(targetCubes * 0.7));
         
         // Генерируем башни, начиная с самых высоких
         let currentHeight = maxTowerHeight;
         while (remaining > 0 && towers.length < maxTowers) {
             // Высота новой башни
-            const height = Math.min(remaining, Math.max(1, currentHeight));
+            const height = Math.min(remaining, Math.max(1, Math.min(currentHeight, Math.floor(targetCubes / (maxTowers * 0.7)))));
             
             towers.push({
                 height: height,
@@ -733,8 +737,8 @@
             
             remaining -= height;
             
-            // Уменьшаем высоту для следующей башни
-            currentHeight = Math.max(1, currentHeight - 1);
+            // Уменьшаем высоту для следующей башни более агрессивно
+            currentHeight = Math.max(1, currentHeight - (Math.random() > 0.3 ? 1 : 0));
             if (currentHeight === 1 && remaining > maxTowers - towers.length) {
                 currentHeight = 2; // Увеличиваем минимальную высоту, если осталось много кубиков
             }

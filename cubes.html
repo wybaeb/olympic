@@ -116,13 +116,46 @@
     .btn-flatten:active {
         background: #c0c0c0;
     }
+    .level-select-container {
+        display: inline-block;
+        margin-left: 10px;
+        position: relative;
+    }
+    .level-select {
+        padding: 4px 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background-color: #fff;
+        font-size: 0.9rem;
+        cursor: pointer;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23333'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 4px center;
+        background-size: 16px;
+        padding-right: 24px;
+    }
+    .level-select:focus {
+        outline: none;
+        border-color: #2196F3;
+        box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+    }
 </style>
 </head>
 <body>
 <h1>Посчитай кубики!</h1>
 
 <div class="game-info">
-    <div class="level">Уровень: <span id="currentLevel">1</span></div>
+    <div class="level">
+        Уровень: <span id="currentLevel">1</span>
+        <div class="level-select-container">
+            <select id="levelSelect" class="level-select" title="Выбрать уровень">
+                <!-- Опции будут добавлены через JavaScript -->
+            </select>
+        </div>
+    </div>
     <div class="progress">Прогресс: <span id="progress">0/3</span></div>
     <button id="btnFlatten" class="btn-flatten" title="Удерживайте для сжатия высоты">⇅</button>
 </div>
@@ -953,8 +986,34 @@
 
     // Инициализация игры
     function initGame() {
+        // Заполняем выпадающий список уровней
+        const levelSelect = document.getElementById('levelSelect');
+        for (let i = 1; i <= 100; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = `Уровень ${i}`;
+            levelSelect.appendChild(option);
+        }
+        
+        // Добавляем обработчик события изменения уровня
+        levelSelect.addEventListener('change', function() {
+            const selectedLevel = parseInt(this.value);
+            if (selectedLevel !== currentLevel) {
+                currentLevel = selectedLevel;
+                successCount = 0;
+                levelEl.textContent = currentLevel;
+                progressEl.textContent = `${successCount}/3`;
+                updateLevelHash();
+                createNewTask();
+                showMessage(`Переход на уровень ${currentLevel}`, 'level-up');
+            }
+        });
+        
         // Проверяем хеш в URL
         checkLevelFromHash();
+        
+        // Обновляем выпадающий список в соответствии с текущим уровнем
+        levelSelect.value = currentLevel;
         
         levelEl.textContent = currentLevel;
         createNewTask();
@@ -980,6 +1039,10 @@
     function updateLevelHash() {
         const hash = encodeLevelToHash(currentLevel);
         window.location.hash = hash;
+        
+        // Обновляем значение выпадающего списка
+        const levelSelect = document.getElementById('levelSelect');
+        levelSelect.value = currentLevel;
     }
 
     // Функция для генерации сложного хеша на основе номера уровня

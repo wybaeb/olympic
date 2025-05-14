@@ -328,7 +328,6 @@
         let magicSquare = Array(9).fill(0);
         let fixedCells = [];
         let targetSum = 0;
-        let tempInputs = Array(9).fill("");
         
         // Загружаем сохраненный прогресс из URL или localStorage
         function loadGameState() {
@@ -499,30 +498,63 @@
                     cell.textContent = magicSquare[i];
                 } else {
                     cell.classList.add('editable');
-                    if (selectedCell === i && tempInputs[i] !== "") {
-                        cell.textContent = tempInputs[i];
-                    } else if (magicSquare[i] !== 0) {
-                        cell.textContent = magicSquare[i];
-                    } else {
-                        cell.textContent = '';
-                    }
-                }
-                
-                // Добавляем обработчик событий только для редактируемых ячеек
-                if (!fixedCells.includes(i)) {
-                    cell.addEventListener('click', () => {
-                        if (selectedCell !== null && selectedCell !== i) {
-                            // При смене ячейки сохраняем предыдущее значение
-                            commitTempInput(selectedCell);
-                        }
+                    
+                    // Создаем input для ввода числа
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.min = '1';
+                    input.max = '99';
+                    input.className = 'cell-input';
+                    input.value = magicSquare[i] === 0 ? '' : magicSquare[i];
+                    
+                    // Стилизуем input
+                    input.style.width = '100%';
+                    input.style.height = '100%';
+                    input.style.border = 'none';
+                    input.style.background = 'none';
+                    input.style.textAlign = 'center';
+                    input.style.fontSize = 'inherit';
+                    input.style.fontWeight = 'inherit';
+                    input.style.color = 'inherit';
+                    input.style.padding = '0';
+                    input.style.margin = '0';
+                    input.style.appearance = 'none';
+                    input.style.outline = 'none';
+                    
+                    // Обработчики для input
+                    input.addEventListener('focus', () => {
                         if (selectedCell !== null) {
                             document.querySelector(`.cell[data-index="${selectedCell}"]`).classList.remove('selected');
                         }
                         selectedCell = i;
                         cell.classList.add('selected');
-                        // Показываем tempInput
-                        updateSquareUI();
                     });
+                    
+                    input.addEventListener('blur', () => {
+                        const value = parseInt(input.value);
+                        if (!isNaN(value) && value > 0) {
+                            // Проверяем уникальность
+                            let used = magicSquare.slice();
+                            used[i] = 0; // разрешаем перезаписать свою же ячейку
+                            if (used.includes(value)) {
+                                showMessage(`Число ${value} уже используется`, "error");
+                                input.value = magicSquare[i] === 0 ? '' : magicSquare[i];
+                            } else {
+                                magicSquare[i] = value;
+                            }
+                        } else {
+                            input.value = magicSquare[i] === 0 ? '' : magicSquare[i];
+                        }
+                    });
+                    
+                    input.addEventListener('input', () => {
+                        // Ограничиваем длину ввода до 2 символов
+                        if (input.value.length > 2) {
+                            input.value = input.value.slice(0, 2);
+                        }
+                    });
+                    
+                    cell.appendChild(input);
                 }
                 
                 if (selectedCell === i) {
@@ -533,65 +565,18 @@
             }
         }
         
-        // Сохраняет tempInput в magicSquare, если валидно
-        function commitTempInput(index) {
-            let str = tempInputs[index];
-            if (!str) return;
-            let value = parseInt(str);
-            if (isNaN(value)) return;
-            // Проверяем уникальность
-            let used = magicSquare.slice();
-            used[index] = 0; // разрешаем перезаписать свою же ячейку
-            if (used.includes(value)) {
-                showMessage(`Число ${value} уже используется`, "error");
-                tempInputs[index] = "";
-                return;
-            }
-            magicSquare[index] = value;
-            tempInputs[index] = "";
-        }
-        
-        // Обработчик keydown для ввода числа в выбранную ячейку
-        document.addEventListener('keydown', function(e) {
-            if (selectedCell !== null && !fixedCells.includes(selectedCell)) {
-                // Если Enter — сохранить
-                if (e.key === 'Enter') {
-                    commitTempInput(selectedCell);
-                    updateSquareUI();
-                    return;
-                }
-                // Если Backspace — удалить последний символ
-                if (e.key === 'Backspace') {
-                    tempInputs[selectedCell] = tempInputs[selectedCell].slice(0, -1);
-                    updateSquareUI();
-                    return;
-                }
-                // Если цифра — добавить к tempInput
-                if (/\d/.test(e.key)) {
-                    tempInputs[selectedCell] += e.key;
-                    // Ограничим длину до 2 символов
-                    if (tempInputs[selectedCell].length > 2) {
-                        tempInputs[selectedCell] = tempInputs[selectedCell].slice(0, 2);
-                    }
-                    updateSquareUI();
-                    return;
-                }
-            }
-        });
-        
-        // При клике вне ячейки — сохраняем tempInput
-        document.addEventListener('click', function(e) {
-            const cell = e.target.closest('.cell');
-            if (!cell && selectedCell !== null) {
-                commitTempInput(selectedCell);
-                selectedCell = null;
-                updateSquareUI();
-            }
-        });
-        
         // Обработчик кнопки "Проверить"
         document.getElementById('check-button').addEventListener('click', () => {
-            for (let i = 0; i < 9; i++) commitTempInput(i);
+            // Сначала сохраняем все значения из input-полей
+            const inputs = document.querySelectorAll('.cell-input');
+            inputs.forEach(input => {
+                const index = parseInt(input.parentNode.dataset.index);
+                const value = parseInt(input.value);
+                if (!isNaN(value) && value > 0) {
+                    magicSquare[index] = value;
+                }
+            });
+            
             if (checkSolution()) {
                 showMessage("Правильно! Вы решили магический квадрат!", "success");
                 puzzlesCompleted++;
@@ -615,7 +600,6 @@
         function startNewPuzzle() {
             generateMagicSquare();
             selectedCell = null;
-            tempInputs = Array(9).fill("");
             updateSquareUI();
             document.getElementById('message-box').innerHTML = '';
         }

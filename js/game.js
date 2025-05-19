@@ -365,24 +365,11 @@ class CoinPairingGame {
                     this.currentLine.setAttribute('x2', endX);
                     this.currentLine.setAttribute('y2', endY);
                     
-                    // Добавляем соединение в массив
-                    this.connections.push({
-                        start: this.lineStart.id,
-                        end: pile.id,
-                        line: this.currentLine
-                    });
+                    // Используем новый метод для создания соединения
+                    this.createConnection(this.lineStart, pile, this.currentLine);
                     
-                    // Сохраняем линию и проверяем, все ли кучки соединены
+                    // Сбрасываем текущую линию
                     this.currentLine = null;
-                    
-                    // Проверяем, все ли кучки соединены
-                    const allConnected = this.checkIfAllPilesConnected();
-                    if (allConnected && this.checkButton) {
-                        // Активируем кнопку проверки
-                        this.checkButton.disabled = false;
-                        // Добавляем анимацию пульсации
-                        this.checkButton.classList.add('pulse-animation');
-                    }
                     
                     return;
                 }
@@ -444,24 +431,11 @@ class CoinPairingGame {
                     this.currentLine.setAttribute('x2', endX);
                     this.currentLine.setAttribute('y2', endY);
                     
-                    // Добавляем соединение в массив
-                    this.connections.push({
-                        start: this.lineStart.id,
-                        end: pile.id,
-                        line: this.currentLine
-                    });
+                    // Используем новый метод для создания соединения
+                    this.createConnection(this.lineStart, pile, this.currentLine);
                     
-                    // Сохраняем линию и проверяем, все ли кучки соединены
+                    // Сбрасываем текущую линию
                     this.currentLine = null;
-                    
-                    // Проверяем, все ли кучки соединены
-                    const allConnected = this.checkIfAllPilesConnected();
-                    if (allConnected && this.checkButton) {
-                        // Активируем кнопку проверки
-                        this.checkButton.disabled = false;
-                        // Добавляем анимацию пульсации
-                        this.checkButton.classList.add('pulse-animation');
-                    }
                     
                     return;
                 }
@@ -1017,6 +991,11 @@ class CoinPairingGame {
         // Очищаем массив соединений
         this.connections = [];
         
+        // Удаляем класс connected со всех кучек
+        this.pileContainers.forEach(pile => {
+            pile.classList.remove('connected');
+        });
+        
         // Очищаем визуальное отображение соединений
         if (this.connectionsLayer) {
             // Сохраняем атрибуты SVG
@@ -1079,6 +1058,11 @@ class CoinPairingGame {
             // Создаем временное уведомление о выполнении текущего задания
             this.showTemporaryMessage(`Отлично! Задание ${this.currentTask} выполнено!`, 'success');
             
+            // Удаляем класс connected со всех кучек
+            this.pileContainers.forEach(pile => {
+                pile.classList.remove('connected');
+            });
+            
             // Переходим к следующему заданию или уровню
             setTimeout(() => {
                 this.progressToNextTask();
@@ -1086,6 +1070,11 @@ class CoinPairingGame {
         } else {
             // Показываем сообщение об ошибке
             this.showTemporaryMessage(`Правильных пар: ${correctCount} из ${this.connections.length}. Начните уровень заново.`, 'error');
+            
+            // Удаляем класс connected со всех кучек
+            this.pileContainers.forEach(pile => {
+                pile.classList.remove('connected');
+            });
             
             // Ждем немного и возвращаем пользователя к ПЕРВОМУ заданию текущего уровня
             setTimeout(() => {
@@ -1183,6 +1172,55 @@ class CoinPairingGame {
             return `$${dollars}.${cents.toString().padStart(2, '0')}`;
         } else {
             return `${cents}¢`;
+        }
+    }
+    
+    /**
+     * Создает новое соединение между кучками и удаляет существующие соединения для этих кучек
+     * @param {HTMLElement} startPile - Начальная кучка
+     * @param {HTMLElement} endPile - Конечная кучка
+     * @param {SVGLineElement} line - Линия соединения
+     */
+    createConnection(startPile, endPile, line) {
+        // Удаляем существующие соединения для этих кучек
+        this.connections = this.connections.filter(conn => {
+            if (conn.start === startPile.id || conn.end === startPile.id ||
+                conn.start === endPile.id || conn.end === endPile.id) {
+                
+                // Удаляем класс connected с кучек, которые были ранее соединены
+                const pileA = document.getElementById(conn.start);
+                const pileB = document.getElementById(conn.end);
+                if (pileA) pileA.classList.remove('connected');
+                if (pileB) pileB.classList.remove('connected');
+                
+                // Удаляем линию из SVG
+                if (conn.line && conn.line.parentNode) {
+                    conn.line.parentNode.removeChild(conn.line);
+                }
+                
+                return false;
+            }
+            return true;
+        });
+        
+        // Добавляем новое соединение
+        this.connections.push({
+            start: startPile.id,
+            end: endPile.id,
+            line: line
+        });
+        
+        // Добавляем класс connected для визуального выделения
+        startPile.classList.add('connected');
+        endPile.classList.add('connected');
+        
+        // Проверяем, все ли кучки соединены
+        const allConnected = this.checkIfAllPilesConnected();
+        if (allConnected && this.checkButton) {
+            // Активируем кнопку проверки
+            this.checkButton.disabled = false;
+            // Добавляем анимацию пульсации
+            this.checkButton.classList.add('pulse-animation');
         }
     }
 }

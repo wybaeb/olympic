@@ -323,9 +323,6 @@ body {
 /* Стили для отображения монет в кучке */
 .coin {
     position: relative;
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
     transform-origin: center;
     display: inline-flex;
     justify-content: center;
@@ -333,28 +330,29 @@ body {
     margin: 4px;
 }
 
+/* Удаляем фоновые изображения из CSS, так как теперь используются img элементы */
 .coin-1 {
-    background-image: url('money_1.png');
+    /* Стили без фонового изображения */
 }
 
 .coin-5 {
-    background-image: url('money_5.png');
+    /* Стили без фонового изображения */
 }
 
 .coin-10 {
-    background-image: url('money_10.png');
+    /* Стили без фонового изображения */
 }
 
 .coin-25 {
-    background-image: url('money_25.png');
+    /* Стили без фонового изображения */
 }
 
 .coin-50 {
-    background-image: url('money_50.png');
+    /* Стили без фонового изображения */
 }
 
 .coin-100 {
-    background-image: url('money_100.png');
+    /* Стили без фонового изображения */
 }
 
 /* Стили для соединительной линии при перетаскивании */

@@ -29,12 +29,12 @@ class CoinPairingGame {
         
         // Информация о монетах (размеры и масштаб)
         this.coinData = {
-            1: { width: 100, height: 100, src: 'assets/coin-1cent.png' },
-            5: { width: 110, height: 110, src: 'assets/coin-5cent.png' },
-            10: { width: 120, height: 120, src: 'assets/coin-10cent.png' },
-            25: { width: 140, height: 140, src: 'assets/coin-25cent.png' },
-            50: { width: 160, height: 160, src: 'assets/coin-50cent.png' },
-            100: { width: 200, height: 120, src: 'assets/coin-1dollar.png' }
+            1: { width: 100, height: 100, src: 'money_1.png' },
+            5: { width: 110, height: 110, src: 'money_5.png' },
+            10: { width: 120, height: 120, src: 'money_10.png' },
+            25: { width: 140, height: 140, src: 'money_25.png' },
+            50: { width: 160, height: 160, src: 'money_50.png' },
+            100: { width: 212, height: 90, src: 'money_100.png' }
         };
         
         // Множитель масштабирования
@@ -594,36 +594,57 @@ class CoinPairingGame {
             
             // Стилизуем монету в зависимости от номинала
             if (validDenomination === 100) { // $1
-                coinElement.style.backgroundColor = '#FFD700'; // Золотистый
                 coinElement.style.borderRadius = '5px'; // Прямоугольная форма с закругленными углами
+                // Не добавляем border для доллара
             } else {
                 coinElement.style.backgroundColor = this.getCoinColor(validDenomination);
                 coinElement.style.borderRadius = '50%'; // Круглая форма для монет
+                coinElement.style.border = '1px solid #888';
             }
             
-            coinElement.style.border = '1px solid #888';
+            // Общие стили для всех монет и купюр (без border для доллара)
             coinElement.style.display = 'flex';
             coinElement.style.justifyContent = 'center';
             coinElement.style.alignItems = 'center';
             coinElement.style.margin = '3px';
             
-            // Если бы у нас были изображения, мы бы добавили их здесь
-            // coinElement.style.backgroundImage = `url(${coinInfo.src})`;
-            // coinElement.style.backgroundSize = 'cover';
-            
-            // Добавляем текстовую метку (для отладки, в реальном приложении можно убрать)
-            const label = document.createElement('span');
-            label.style.fontSize = `${Math.max(6, scaledWidth / 4)}px`;
-            label.style.color = this.getCoinTextColor(validDenomination);
-            label.style.fontWeight = 'bold';
-            
-            if (validDenomination === 100) {
-                label.textContent = '$1';
+            // Добавляем изображения монет (занимают примерно 20% площади)
+            if (coinInfo.src) {
+                const imageElement = document.createElement('img');
+                imageElement.src = coinInfo.src;
+                
+                // Разные размеры для доллара и монет
+                if (validDenomination === 100) {
+                    imageElement.style.width = '100%';
+                    imageElement.style.height = '100%';
+                    imageElement.style.objectFit = 'contain';
+                    // Убрать фон для доллара полностью
+                    coinElement.style.backgroundColor = 'transparent';
+                } else {
+                    // Для монет - фиксированный размер изображения
+                    imageElement.style.width = '100%';
+                    imageElement.style.height = '100%';
+                    imageElement.style.objectFit = 'contain';
+                    // Сохраняем фон, но убираем возможное задвоение изображений
+                    coinElement.style.backgroundImage = 'none';
+                }
+                
+                coinElement.appendChild(imageElement);
             } else {
-                label.textContent = `${validDenomination}¢`;
+                // Если изображения нет, добавляем текстовую метку
+                const label = document.createElement('span');
+                label.style.fontSize = `${Math.max(6, scaledWidth / 4)}px`;
+                label.style.color = this.getCoinTextColor(validDenomination);
+                label.style.fontWeight = 'bold';
+                
+                if (validDenomination === 100) {
+                    label.textContent = '$1';
+                } else {
+                    label.textContent = `${validDenomination}¢`;
+                }
+                
+                coinElement.appendChild(label);
             }
-            
-            coinElement.appendChild(label);
             
             // Добавляем монету в контейнер
             container.appendChild(coinElement);

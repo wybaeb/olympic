@@ -18,31 +18,8 @@ class CoinPairingGame {
         // Общее количество заданий на уровне
         this.tasksPerLevel = 3;
         
-        // Базовые пары кучек (будут масштабироваться в зависимости от уровня)
-        this.basePairs = [
-            // Уровень 1: Простые пары с небольшими суммами
-            { relativeAmount: 25, basePair: ["25¢", "5¢ + 10¢ + 10¢"] },
-            { relativeAmount: 50, basePair: ["50¢", "25¢ + 25¢"] },
-            { relativeAmount: 75, basePair: ["25¢ + 50¢", "25¢ + 25¢ + 25¢"] },
-            
-            // Уровень 2: Средние пары с использованием разных монет
-            { relativeAmount: 100, basePair: ["$1", "50¢ + 50¢"] },
-            { relativeAmount: 125, basePair: ["$1 + 25¢", "50¢ + 50¢ + 25¢"] },
-            { relativeAmount: 150, basePair: ["$1 + 50¢", "50¢ + 50¢ + 50¢"] },
-            
-            // Уровень 3: Сложные пары с большими суммами
-            { relativeAmount: 175, basePair: ["$1 + 50¢ + 25¢", "25¢ x 7"] },
-            { relativeAmount: 200, basePair: ["$1 x 2", "50¢ x 4"] },
-            { relativeAmount: 250, basePair: ["$1 x 2 + 50¢", "25¢ x 10"] }
-        ];
-        
-        // Состояние соединений
-        this.connections = [];
-        
-        // Для отслеживания текущей линии при drag-and-drop
-        this.dragging = false;
-        this.lineStart = null;
-        this.currentLine = null;
+        // Допустимые номиналы
+        this.allowedDenominations = [1, 5, 10, 25, 50, 100];
         
         // Информация о монетах (размеры и масштаб)
         this.coinData = {
@@ -57,8 +34,13 @@ class CoinPairingGame {
         // Множитель масштабирования
         this.itemScale = 0.15;
         
-        // Допустимые номиналы
-        this.allowedDenominations = [1, 5, 10, 25, 50, 100];
+        // Состояние соединений
+        this.connections = [];
+        
+        // Для отслеживания текущей линии при drag-and-drop
+        this.dragging = false;
+        this.lineStart = null;
+        this.currentLine = null;
         
         // Инициализируем игровые элементы
         this.initElements();
@@ -576,179 +558,175 @@ class CoinPairingGame {
     generateLevelData(level, task = 1) {
         console.log(`Generating data for level ${level}, task ${task}...`);
         
-        // Определяем, какие базовые пары использовать в зависимости от уровня
-        let levelPairs = [];
+        // Формулы зависимости от уровня
+        // 1. Базовая сумма: увеличивается с уровнем (по формуле 25 * уровень)
+        const baseAmount = 25 * level;
         
-        // Для уровней выше 3, используем последние 3 пары, но с увеличенной сложностью
-        if (level <= 3) {
-            // Выбираем соответствующий набор базовых пар
-            const startIdx = (level - 1) * 3;
-            levelPairs = this.basePairs.slice(startIdx, startIdx + 3);
-        } else {
-            // Для уровней выше 3 используем последний набор пар, но увеличиваем суммы
-            levelPairs = this.basePairs.slice(6, 9).map(pair => {
-                // Увеличиваем сумму пропорционально уровню 
-                const multiplier = 1 + (level - 3) * 0.5; // +50% за каждый уровень выше 3
-                return {
-                    relativeAmount: Math.floor(pair.relativeAmount * multiplier),
-                    basePair: pair.basePair
-                };
+        // 2. Минимальное количество монет: увеличивается с уровнем (по формуле 5 + уровень * 2)
+        const minCoins = 5 + level * 2;
+        
+        console.log(`Level ${level}, task ${task}: base amount ${baseAmount}, min coins ${minCoins}`);
+        
+        // Генерируем 3 разные суммы для 3 пар кучек
+        const pairAmounts = [];
+        
+        // Первая пара (базовая сумма или модифицированная в зависимости от задания)
+        let firstPairAmount;
+        switch (task) {
+            case 1:
+                firstPairAmount = baseAmount;
+                break;
+            case 2:
+                firstPairAmount = Math.floor(baseAmount * 1.4);
+                break;
+            case 3:
+                firstPairAmount = Math.max(10, Math.floor(baseAmount * 0.6));
+                break;
+            default:
+                firstPairAmount = baseAmount;
+        }
+        pairAmounts.push(firstPairAmount);
+        
+        // Вторая пара (базовая сумма +/- случайное значение 10-30%)
+        let secondPairAmount;
+        do {
+            const diff = Math.random() > 0.5 ? 1 : -1;
+            const percentage = 10 + Math.floor(Math.random() * 20); // 10-30%
+            secondPairAmount = Math.max(10, Math.floor(baseAmount * (1.0 + diff * percentage / 100.0)));
+        } while (secondPairAmount === firstPairAmount); // Убедимся, что суммы разные
+        pairAmounts.push(secondPairAmount);
+        
+        // Третья пара (отличается от первых двух)
+        let thirdPairAmount;
+        do {
+            const diff = Math.random() > 0.5 ? 1 : -1;
+            const percentage = 15 + Math.floor(Math.random() * 25); // 15-40%
+            thirdPairAmount = Math.max(10, Math.floor(baseAmount * (1.0 + diff * percentage / 100.0)));
+        } while (thirdPairAmount === firstPairAmount || thirdPairAmount === secondPairAmount); // Убедимся, что сумма отличается от предыдущих
+        pairAmounts.push(thirdPairAmount);
+        
+        console.log(`Generated pair amounts: ${pairAmounts.join(', ')}`);
+        
+        // Создаем 3 пары куч с соответствующими суммами
+        const pairs = [];
+        
+        // Для каждой суммы создаем пару куч с разным составом монет, но одинаковой суммой
+        for (let i = 0; i < 3; i++) {
+            const pairAmount = pairAmounts[i];
+            pairs.push({
+                pairIndex: i,
+                amount: pairAmount,
+                piles: [
+                    this.CashItemsSet(pairAmount, minCoins),
+                    this.CashItemsSet(pairAmount, minCoins)
+                ]
             });
         }
         
-        // Выбираем пару на основе текущего задания (1, 2, 3)
-        const pairIndex = (task - 1) % levelPairs.length;
-        const basePairData = levelPairs[pairIndex];
-        
-        // Количество монет увеличивается с уровнем
-        const coinsPerPile = 5 + level * 3;
-        console.log(`Generating level ${level}, task ${task} with ${coinsPerPile} coins per pile`);
-        
-        // Создаем пары монет
-        const pair1Amount = basePairData.relativeAmount;
-        const pair2Amount = Math.floor(pair1Amount * 1.4); // 40% больше, минимум отличие 10¢
-        const pair3Amount = Math.floor(pair1Amount * 0.6); // 40% меньше, но не менее 10¢
-        
-        // Убеждаемся, что суммы отличаются минимум на 5¢
-        const ensureUniqueSums = () => {
-            if (pair2Amount - pair1Amount < 5) {
-                return Math.max(pair1Amount + 5, pair2Amount);
-            }
-            return pair2Amount;
-        };
-        
-        const ensureMinSum = (amount) => {
-            return Math.max(10, amount); // Минимальная сумма 10¢
-        };
-        
-        const validPair2Amount = ensureUniqueSums();
-        const validPair3Amount = ensureMinSum(pair3Amount);
-        
-        // Создаем 3 пары с разными суммами
-        const pairs = [
-            {
-                amount: pair1Amount,
-                compositions: [
-                    this.generateComposition(basePairData.basePair[0], pair1Amount, coinsPerPile),
-                    this.generateComposition(basePairData.basePair[1], pair1Amount, coinsPerPile)
-                ]
-            },
-            {
-                amount: validPair2Amount,
-                compositions: [
-                    this.generateComposition("$1", validPair2Amount, coinsPerPile),
-                    this.generateComposition("25¢", validPair2Amount, coinsPerPile)
-                ]
-            },
-            {
-                amount: validPair3Amount,
-                compositions: [
-                    this.generateComposition("10¢", validPair3Amount, coinsPerPile),
-                    this.generateComposition("5¢", validPair3Amount, coinsPerPile)
-                ]
-            }
-        ];
-        
-        return { pairs };
+        return { pairs: pairs };
     }
     
     /**
-     * Генерирует массив монет для кучки
-     * @param {string} baseType - Базовый тип монет ("$1", "25¢" и т.д.)
-     * @param {number} totalAmount - Общая сумма в центах
-     * @param {number} targetCoins - Целевое количество монет
+     * Генерирует массив монет для кучки с заданной суммой и минимальным количеством
+     * @param {number} moneyAmount - Общая сумма в центах
+     * @param {number} minItemsNumber - Минимальное количество монет/купюр
      * @returns {Array} - Массив номиналов монет
      */
-    generateComposition(baseType, totalAmount, targetCoins) {
-        console.log(`Generating composition for ${baseType}, amount ${totalAmount}, target coins ${targetCoins}`);
+    CashItemsSet(moneyAmount, minItemsNumber) {
+        console.log(`Generating cash items for amount ${moneyAmount}, min items ${minItemsNumber}`);
         
         // Допустимые номиналы монет (от большего к меньшему)
-        const denominations = [...this.allowedDenominations].sort((a, b) => b - a);
+        const denominations = [100, 50, 25, 10, 5, 1];
         
-        // Приоритетный номинал на основе базового типа
-        let primaryDenomination = 25; // По умолчанию 25 центов
-        
-        if (baseType.includes("$1")) {
-            primaryDenomination = 100; // Доллары
-        } else if (baseType.includes("50¢")) {
-            primaryDenomination = 50; // 50 центов
-        }
-        
-        // Создаем композицию монет по новому алгоритму
+        // Массив для хранения монет
         const coinValues = [];
-        let remainingAmount = totalAmount;
+        let remainingAmount = moneyAmount;
         
-        // 1. Сначала добавляем одну монету приоритетного типа (если возможно)
-        if (remainingAmount >= primaryDenomination) {
-            coinValues.push(primaryDenomination);
-            remainingAmount -= primaryDenomination;
+        // Шаг 1-3: Берём сумму, выбираем случайную монету и добавляем в массив
+        // Находим все допустимые номиналы (не превышающие сумму)
+        const validDenoms = denominations.filter(d => d <= remainingAmount);
+        if (validDenoms.length > 0) {
+            // Случайно выбираем один из номиналов
+            const randomIndex = Math.floor(Math.random() * validDenoms.length);
+            const randomDenom = validDenoms[randomIndex];
+            
+            // Добавляем в массив и вычитаем из оставшейся суммы
+            coinValues.push(randomDenom);
+            remainingAmount -= randomDenom;
         }
         
-        // 2. Жадный алгоритм: используем монеты от больших к малым
+        // Шаг 4: Пока сумма не равна 0, заполняем массив делением с остатком
         while (remainingAmount > 0) {
+            // Перебираем все номиналы от большего к меньшему
             let added = false;
-            
             for (const denom of denominations) {
                 if (denom <= remainingAmount) {
-                    coinValues.push(denom);
-                    remainingAmount -= denom;
+                    // Определяем, сколько монет данного номинала помещается в оставшуюся сумму
+                    const count = Math.floor(remainingAmount / denom);
+                    
+                    // Добавляем все эти монеты в массив
+                    for (let i = 0; i < count; i++) {
+                        coinValues.push(denom);
+                    }
+                    
+                    // Вычитаем из оставшейся суммы
+                    remainingAmount -= (count * denom);
                     added = true;
                     break;
                 }
             }
             
-            // Если не смогли добавить ни одной монеты (странный случай)
+            // Если ничего не добавили (что странно), добавляем монету наименьшего номинала
             if (!added && remainingAmount > 0) {
-                coinValues.push(1); // Добавляем минимальную монету
+                coinValues.push(1);
                 remainingAmount -= 1;
             }
         }
         
-        // 3. Проверяем, достаточно ли монет - если нет, разбиваем крупные
-        while (coinValues.length < targetCoins) {
-            // Находим крупную монету для разбивки (номинал > 1)
+        // Шаг 5: Проверяем, достаточно ли монет/купюр
+        while (coinValues.length < minItemsNumber) {
+            // Находим все монеты с номиналом > 1
             const largeCoins = coinValues.filter(c => c > 1);
             
             if (largeCoins.length === 0) {
-                // Больше нечего разбивать, добавляем монеты по 1 центу
+                // Больше нечего дробить, добавляем монеты по 1 центу
                 coinValues.push(1);
                 continue;
             }
             
-            // Выбираем случайную крупную монету
+            // Случайно выбираем одну из крупных монет
             const randomIndex = Math.floor(Math.random() * largeCoins.length);
             const coinToSplit = largeCoins[randomIndex];
-            const coinIndex = coinValues.indexOf(coinToSplit);
             
-            // Удаляем выбранную монету
+            // Находим и удаляем эту монету из массива
+            const coinIndex = coinValues.indexOf(coinToSplit);
             coinValues.splice(coinIndex, 1);
             
-            // Разбиваем монету на более мелкие
-            let valueToDistribute = coinToSplit;
-            while (valueToDistribute > 0) {
-                // Находим подходящий номинал (меньше чем разбиваемая монета)
-                const suitableDenoms = denominations.filter(d => d < coinToSplit && d <= valueToDistribute);
+            // Разбиваем эту монету на более мелкие, используя тот же алгоритм деления с остатком
+            let tempAmount = coinToSplit;
+            for (const denom of denominations) {
+                // Пропускаем номиналы, которые больше или равны разбиваемой монете
+                if (denom >= coinToSplit) continue;
                 
-                if (suitableDenoms.length > 0) {
-                    // Выбираем случайный номинал из подходящих
-                    const randomDenom = suitableDenoms[Math.floor(Math.random() * suitableDenoms.length)];
-                    coinValues.push(randomDenom);
-                    valueToDistribute -= randomDenom;
-                } else {
-                    // Добавляем монеты по 1 центу для остатка
-                    coinValues.push(1);
-                    valueToDistribute -= 1;
+                if (denom <= tempAmount) {
+                    // Определяем, сколько монет данного номинала помещается
+                    const count = Math.floor(tempAmount / denom);
+                    
+                    // Добавляем все эти монеты в массив
+                    for (let i = 0; i < count; i++) {
+                        coinValues.push(denom);
+                    }
+                    
+                    // Вычитаем из временной суммы
+                    tempAmount -= (count * denom);
                 }
             }
-        }
-        
-        // Если у нас слишком много монет, удаляем самые мелкие
-        while (coinValues.length > targetCoins) {
-            // Сортируем копию массива, чтобы найти минимальные значения
-            const sortedCoins = [...coinValues].sort((a, b) => a - b);
-            const minCoin = sortedCoins[0];
-            const minIndex = coinValues.indexOf(minCoin);
-            coinValues.splice(minIndex, 1);
+            
+            // Если остался остаток, добавляем монеты по 1 центу
+            while (tempAmount > 0) {
+                coinValues.push(1);
+                tempAmount -= 1;
+            }
         }
         
         // Перемешиваем монеты в случайном порядке
@@ -757,47 +735,10 @@ class CoinPairingGame {
             [coinValues[i], coinValues[j]] = [coinValues[j], coinValues[i]];
         }
         
-        // Проверка: убедимся, что сумма равна требуемой
-        const totalSum = coinValues.reduce((sum, val) => sum + val, 0);
-        if (totalSum !== totalAmount) {
-            console.error(`Error in coin composition! Expected sum: ${totalAmount}, actual sum: ${totalSum}`);
-            
-            // Корректируем ошибку, если есть
-            const difference = totalAmount - totalSum;
-            
-            if (difference > 0) {
-                // Не хватает, добавляем монеты
-                let remainingDiff = difference;
-                while (remainingDiff > 0) {
-                    // Пытаемся найти подходящую монету
-                    const suitableDenom = denominations.find(d => d <= remainingDiff);
-                    if (suitableDenom) {
-                        coinValues.push(suitableDenom);
-                        remainingDiff -= suitableDenom;
-                    } else {
-                        coinValues.push(1);
-                        remainingDiff -= 1;
-                    }
-                }
-            } else if (difference < 0) {
-                // Переизбыток, удаляем монеты
-                let remainingDiff = -difference;
-                while (remainingDiff > 0) {
-                    // Ищем монету, которую можно удалить
-                    const coinToRemove = coinValues.find(c => c <= remainingDiff);
-                    if (coinToRemove) {
-                        const index = coinValues.indexOf(coinToRemove);
-                        coinValues.splice(index, 1);
-                        remainingDiff -= coinToRemove;
-                    } else {
-                        // Не нашли подходящую монету, удаляем любую минимальную
-                        const minCoin = Math.min(...coinValues);
-                        const minIndex = coinValues.indexOf(minCoin);
-                        coinValues.splice(minIndex, 1);
-                        remainingDiff = 0; // Прерываем цикл
-                    }
-                }
-            }
+        // Финальная проверка, что сумма совпадает
+        const actualSum = coinValues.reduce((sum, val) => sum + val, 0);
+        if (actualSum !== moneyAmount) {
+            console.error(`Error in CashItemsSet! Expected: ${moneyAmount}, got: ${actualSum}`);
         }
         
         return coinValues;
@@ -813,24 +754,26 @@ class CoinPairingGame {
         // Массив для всех кучек
         const allPiles = [];
         
-        // Создаем кучки из пар с одинаковой суммой
-        levelData.pairs.forEach((pair, index) => {
-            // Первая кучка пары
+        // Создаем все кучи из пар
+        for (let i = 0; i < levelData.pairs.length; i++) {
+            const pair = levelData.pairs[i];
+            
+            // Первая куча в паре
             allPiles.push({
                 id: `pile-${allPiles.length + 1}`,
                 amount: pair.amount,
-                composition: pair.compositions[0],
-                pairIndex: index  // Сохраняем индекс пары для проверки
+                composition: pair.piles[0],
+                pairIndex: pair.pairIndex
             });
             
-            // Вторая кучка пары
+            // Вторая куча в паре
             allPiles.push({
                 id: `pile-${allPiles.length + 1}`,
                 amount: pair.amount,
-                composition: pair.compositions[1],
-                pairIndex: index  // Тот же индекс пары
+                composition: pair.piles[1],
+                pairIndex: pair.pairIndex
             });
-        });
+        }
         
         // Перемешиваем кучки для случайного расположения
         for (let i = allPiles.length - 1; i > 0; i--) {
@@ -880,7 +823,7 @@ class CoinPairingGame {
                 // Сохраняем данные в атрибуте
                 this.pileContainers[i].dataset.pileId = this.pileContainers[i].id;
                 this.pileContainers[i].dataset.amount = pile.amount;
-                this.pileContainers[i].dataset.pairIndex = pile.pairIndex; // Сохраняем индекс пары
+                this.pileContainers[i].dataset.pairIndex = pile.pairIndex;
             }
         }
         
@@ -1059,8 +1002,8 @@ class CoinPairingGame {
             const endPile = document.getElementById(connection.end);
             
             if (startPile && endPile) {
-                // Проверяем, что соединены кучи из одной пары (одинаковые суммы)
-                if (startPile.dataset.amount === endPile.dataset.amount) {
+                // Проверяем, что соединены кучи из одной пары (по pairIndex)
+                if (startPile.dataset.pairIndex === endPile.dataset.pairIndex) {
                     // Правильное соединение - меняем цвет на зеленый
                     connection.line.setAttribute('stroke', '#4CAF50');
                     connection.line.setAttribute('stroke-width', '5');

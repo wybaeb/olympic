@@ -333,9 +333,6 @@ body {
 #reset-btn {
     background-color: #e74c3c;
     color: #fff;
-    position: absolute;
-    bottom: -20px;
-    right: 0;
     width: 40px;
     height: 40px;
     display: flex;
@@ -344,6 +341,7 @@ body {
     padding: 0;
     border-radius: 50%;
     font-size: 18px;
+    margin-left: auto;
 }
 
 #reset-btn:hover {

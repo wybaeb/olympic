@@ -669,6 +669,9 @@ class CoinPairingGame {
         // Сбрасываем все соединения
         this.resetConnections();
         
+        // Явно отключаем кнопку проверки при смене уровня
+        this.setCheckButtonDisabled(true);
+        
         // Генерируем данные для текущего уровня и задания
         const levelData = this.generateLevelData(level, task);
         
@@ -1141,6 +1144,9 @@ class CoinPairingGame {
         this.pileContainers.forEach(pile => {
             pile.classList.remove('connected');
         });
+        
+        // Отключаем кнопку проверки
+        this.setCheckButtonDisabled(true);
         
         // Очищаем визуальное отображение соединений
         if (this.connectionsLayer) {

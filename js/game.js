@@ -225,6 +225,9 @@ class CoinPairingGame {
                 e.preventDefault();
                 console.log("Mousedown on pile:", pile.id);
                 
+                // Удаляем все существующие соединения с этой кучкой
+                this.removeConnectionsForPile(pile);
+                
                 // Обновляем размеры контейнера игры для корректных координат
                 const gameRect = gameContainer.getBoundingClientRect();
                 
@@ -255,6 +258,9 @@ class CoinPairingGame {
             pile.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 console.log("Touchstart on pile:", pile.id);
+                
+                // Удаляем все существующие соединения с этой кучкой
+                this.removeConnectionsForPile(pile);
                 
                 // Обновляем размеры контейнера игры для корректных координат
                 const gameRect = gameContainer.getBoundingClientRect();
@@ -824,15 +830,6 @@ class CoinPairingGame {
                 // Очищаем контейнер
                 container.innerHTML = '';
                 
-                // Создаем элемент для отображения суммы
-                const amountElement = document.createElement('div');
-                amountElement.className = 'pile-amount';
-                amountElement.textContent = this.formatAmount(pile.amount);
-                amountElement.style.fontSize = '24px';
-                amountElement.style.fontWeight = 'bold';
-                amountElement.style.textAlign = 'center';
-                amountElement.style.marginBottom = '10px';
-                
                 // Создаем флекс-контейнер для монет
                 const coinsElement = document.createElement('div');
                 coinsElement.className = 'coins-grid';
@@ -848,7 +845,6 @@ class CoinPairingGame {
                 this.renderCoins(coinsElement, pile.composition);
                 
                 // Добавляем элементы в контейнер
-                container.appendChild(amountElement);
                 container.appendChild(coinsElement);
                 
                 // Сохраняем данные в атрибуте
@@ -1221,6 +1217,39 @@ class CoinPairingGame {
             this.checkButton.disabled = false;
             // Добавляем анимацию пульсации
             this.checkButton.classList.add('pulse-animation');
+        }
+    }
+    
+    /**
+     * Удаляет все соединения, связанные с указанной кучкой
+     * @param {HTMLElement} pile - Кучка, соединения с которой нужно удалить
+     */
+    removeConnectionsForPile(pile) {
+        // Фильтруем массив соединений, удаляя те, которые связаны с указанной кучкой
+        this.connections = this.connections.filter(conn => {
+            if (conn.start === pile.id || conn.end === pile.id) {
+                // Удаляем класс connected с обеих кучек в соединении
+                const pileA = document.getElementById(conn.start);
+                const pileB = document.getElementById(conn.end);
+                if (pileA) pileA.classList.remove('connected');
+                if (pileB) pileB.classList.remove('connected');
+                
+                // Удаляем линию из SVG
+                if (conn.line && conn.line.parentNode) {
+                    conn.line.parentNode.removeChild(conn.line);
+                }
+                
+                return false;
+            }
+            return true;
+        });
+        
+        // Проверяем, все ли кучки соединены после удаления
+        const allConnected = this.checkIfAllPilesConnected();
+        if (!allConnected && this.checkButton) {
+            // Деактивируем кнопку проверки
+            this.checkButton.disabled = true;
+            this.checkButton.classList.remove('pulse-animation');
         }
     }
 }

@@ -29,16 +29,16 @@ class CoinPairingGame {
         
         // Информация о монетах (размеры и масштаб)
         this.coinData = {
-            1: { width: 100, height: 100, src: 'money_1.png' },
-            5: { width: 110, height: 110, src: 'money_5.png' },
-            10: { width: 120, height: 120, src: 'money_10.png' },
-            25: { width: 140, height: 140, src: 'money_25.png' },
-            50: { width: 160, height: 160, src: 'money_50.png' },
-            100: { width: 212, height: 90, src: 'money_100.png' }
+            1: { width: 253, height: 253, src: 'money_1.png' },
+            5: { width: 285, height: 285, src: 'money_5.png' },
+            10: { width: 229, height: 229, src: 'money_10.png' },
+            25: { width: 326, height: 326, src: 'money_25.png' },
+            50: { width: 405, height: 405, src: 'money_50.png' },
+            100: { width: 842, height: 355, src: 'money_100.png' }
         };
         
         // Множитель масштабирования
-        this.itemScale = 0.4;
+        this.itemScale = 0.15;
         
         // Допустимые номиналы
         this.allowedDenominations = [1, 5, 10, 25, 50, 100];
@@ -77,7 +77,6 @@ class CoinPairingGame {
         // Игровые кнопки
         this.checkButton = document.getElementById('check-btn');
         this.resetButton = document.getElementById('reset-btn');
-        this.nextLevelButton = document.getElementById('next-level-btn');
         
         // Добавляем обработчики событий
         this.addEventListeners();
@@ -167,25 +166,18 @@ class CoinPairingGame {
             this.checkButton.addEventListener('click', () => {
                 this.checkAnswers();
             });
+            // Кнопка проверки изначально неактивна
+            this.checkButton.disabled = true;
         }
         
         // Обработчик для кнопки сброса
         if (this.resetButton) {
             this.resetButton.addEventListener('click', () => {
                 this.resetConnections();
-            });
-        }
-        
-        // Обработчик для кнопки следующего уровня
-        if (this.nextLevelButton) {
-            this.nextLevelButton.addEventListener('click', () => {
-                this.level = Math.min(this.level + 1, 3); // Максимум 3 уровня
-                this.startLevel(this.level);
-                this.nextLevelButton.style.display = 'none';
-                
-                // Обновляем отображение уровня
-                if (this.levelDisplay) {
-                    this.levelDisplay.textContent = this.level;
+                // Деактивируем кнопку проверки после сброса
+                if (this.checkButton) {
+                    this.checkButton.disabled = true;
+                    this.checkButton.classList.remove('pulse-animation');
                 }
             });
         }
@@ -440,9 +432,16 @@ class CoinPairingGame {
         
         // Если все 6 кучек соединены (3 пары), активируем кнопку проверки
         if (connectedPiles.size === 6) {
-            // Делаем кнопку проверки более заметной
+            // Активируем кнопку проверки
             if (this.checkButton) {
+                this.checkButton.disabled = false;
                 this.checkButton.classList.add('pulse-animation');
+            }
+        } else {
+            // Деактивируем кнопку если соединений недостаточно
+            if (this.checkButton) {
+                this.checkButton.disabled = true;
+                this.checkButton.classList.remove('pulse-animation');
             }
         }
     }
@@ -887,6 +886,7 @@ class CoinPairingGame {
         // Убираем анимацию с кнопки проверки
         if (this.checkButton) {
             this.checkButton.classList.remove('pulse-animation');
+            this.checkButton.disabled = true;
         }
         
         // Перебираем все соединения и проверяем их
@@ -905,23 +905,96 @@ class CoinPairingGame {
             }
         }
         
-        // Выводим сообщение о результатах
+        // Показываем временное уведомление и автоматически переходим к следующему шагу
         if (allCorrect) {
+            // Создаем временное уведомление
+            this.showTemporaryMessage(`Отлично! Вы нашли все ${correctCount} пар.`, 'success');
+            
+            // Ждем немного и переходим на следующий уровень
             setTimeout(() => {
-                alert(`Все соединения верны! Вы нашли все ${correctCount} пар.`);
-                
-                // Показываем кнопку следующего уровня, если все пары найдены
-                if (correctCount === 3) {
-                    if (this.nextLevelButton) {
-                        this.nextLevelButton.style.display = 'block';
+                if (this.level < 3) {  // Максимум 3 уровня
+                    this.level++;
+                    this.startLevel(this.level);
+                    
+                    // Обновляем отображение уровня
+                    if (this.levelDisplay) {
+                        this.levelDisplay.textContent = this.level;
                     }
+                } else {
+                    // Если это был последний уровень, показываем сообщение о завершении игры
+                    this.showTemporaryMessage('Поздравляем! Вы прошли все уровни!', 'success', 3000);
+                }
+            }, 1500);
+        } else {
+            // Показываем сообщение об ошибке
+            this.showTemporaryMessage(`Найдено только ${correctCount} правильных пар из 3. Попробуйте снова.`, 'error');
+            
+            // Ждем немного и сбрасываем уровень
+            setTimeout(() => {
+                this.startLevel(this.level);
+            }, 1500);
+        }
+    }
+    
+    /**
+     * Показывает временное сообщение без необходимости подтверждения
+     * @param {string} message - текст сообщения
+     * @param {string} type - тип сообщения ('success', 'error')
+     * @param {number} duration - продолжительность отображения в мс (по умолчанию 1500)
+     */
+    showTemporaryMessage(message, type = 'success', duration = 1500) {
+        // Проверяем, существует ли уже окно сообщения
+        let messageBox = document.getElementById('game-message');
+        
+        if (!messageBox) {
+            // Создаем новое окно сообщения
+            messageBox = document.createElement('div');
+            messageBox.id = 'game-message';
+            messageBox.style.position = 'fixed';
+            messageBox.style.top = '50%';
+            messageBox.style.left = '50%';
+            messageBox.style.transform = 'translate(-50%, -50%)';
+            messageBox.style.padding = '15px 25px';
+            messageBox.style.borderRadius = '8px';
+            messageBox.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+            messageBox.style.zIndex = '1000';
+            messageBox.style.fontWeight = 'bold';
+            messageBox.style.textAlign = 'center';
+            messageBox.style.minWidth = '250px';
+            messageBox.style.opacity = '0';
+            messageBox.style.transition = 'opacity 0.3s ease';
+            
+            document.body.appendChild(messageBox);
+        }
+        
+        // Устанавливаем цвет в зависимости от типа сообщения
+        if (type === 'success') {
+            messageBox.style.backgroundColor = '#4CAF50';
+            messageBox.style.color = '#fff';
+        } else if (type === 'error') {
+            messageBox.style.backgroundColor = '#F44336';
+            messageBox.style.color = '#fff';
+        }
+        
+        // Устанавливаем текст сообщения
+        messageBox.textContent = message;
+        
+        // Показываем сообщение с анимацией
+        setTimeout(() => {
+            messageBox.style.opacity = '1';
+        }, 10);
+        
+        // Скрываем сообщение после указанной продолжительности
+        setTimeout(() => {
+            messageBox.style.opacity = '0';
+            
+            // Удаляем элемент после завершения анимации
+            setTimeout(() => {
+                if (messageBox.parentNode) {
+                    messageBox.parentNode.removeChild(messageBox);
                 }
             }, 300);
-        } else {
-            setTimeout(() => {
-                alert(`Проверено ${this.connections.length} соединений. Найдено ${correctCount} правильных пар.`);
-            }, 300);
-        }
+        }, duration);
     }
     
     /**

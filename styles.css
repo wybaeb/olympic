@@ -28,8 +28,15 @@ body {
 }
 
 .game-header {
-    text-align: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 20px;
+}
+
+.game-title {
+    flex: 1;
+    text-align: left;
 }
 
 .game-header h1 {
@@ -128,18 +135,17 @@ body {
 
 /* Стили для легенды */
 .legend-button-container {
-    text-align: center;
-    margin-bottom: 15px;
+    margin-left: 15px;
 }
 
 .legend-button {
     background-color: #3498db;
     color: #fff;
     border: none;
-    padding: 10px 20px;
+    padding: 8px 12px;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 14px;
     transition: background-color 0.3s;
 }
 
@@ -150,26 +156,23 @@ body {
 .legend-panel {
     position: fixed;
     left: 0;
-    bottom: 0;
-    width: 100%;
+    top: 0;
+    width: 300px;
+    height: 100%;
     background-color: #fff;
-    border-top-left-radius: 15px;
-    border-top-right-radius: 15px;
-    box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.1);
     z-index: 100;
-    transform: translateY(100%);
+    transform: translateX(-100%);
     transition: transform 0.3s ease-in-out;
     padding: 20px;
-    max-height: 60vh;
     overflow-y: auto;
 }
 
 .legend-panel.visible {
-    transform: translateY(0);
+    transform: translateX(0);
 }
 
 .legend-content {
-    max-width: 600px;
     margin: 0 auto;
     position: relative;
 }
@@ -213,11 +216,63 @@ body {
     text-align: center;
 }
 
-.legend-item img {
-    width: 50px;
-    height: 50px;
-    object-fit: contain;
+.legend-coin {
     margin-bottom: 5px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+/* Использую точные размеры из реальных файлов */
+/* 1 цент (money_1.png) - 253×253px */
+.legend-coin.coin-1 {
+    border-radius: 50%;
+    background-color: #B87333;
+    width: 35px;
+    height: 35px;
+}
+
+/* 5 центов (money_5.png) - 285×285px */
+.legend-coin.coin-5 {
+    border-radius: 50%;
+    background-color: #A9A9A9;
+    width: 39.5px;
+    height: 39.5px;
+}
+
+/* 10 центов (money_10.png) - 229×229px */
+.legend-coin.coin-10 {
+    border-radius: 50%;
+    background-color: #A9A9A9;
+    width: 32px;
+    height: 32px;
+}
+
+/* 25 центов (money_25.png) - 326×326px */
+.legend-coin.coin-25 {
+    border-radius: 50%;
+    background-color: #C0C0C0;
+    width: 45px;
+    height: 45px;
+}
+
+/* 50 центов (money_50.png) - 405×405px */
+.legend-coin.coin-50 {
+    border-radius: 50%;
+    background-color: #C0C0C0;
+    width: 56px;
+    height: 56px;
+}
+
+/* $1 (money_100.png) - 842×355px */
+.legend-coin.coin-100 {
+    border-radius: 5px;
+    width: 83px;
+    height: 35px;
+    background-color: transparent;
 }
 
 .legend-item span {
@@ -246,6 +301,7 @@ body {
     justify-content: center;
     gap: 15px;
     margin-top: 20px;
+    position: relative;
 }
 
 .game-controls button {
@@ -257,12 +313,19 @@ body {
     transition: background-color 0.3s, transform 0.2s;
 }
 
+.game-controls button:disabled {
+    background-color: #95a5a6;
+    cursor: not-allowed;
+    transform: none;
+    opacity: 0.7;
+}
+
 #check-btn {
     background-color: #2ecc71;
     color: #fff;
 }
 
-#check-btn:hover {
+#check-btn:not(:disabled):hover {
     background-color: #27ae60;
     transform: scale(1.05);
 }
@@ -270,6 +333,17 @@ body {
 #reset-btn {
     background-color: #e74c3c;
     color: #fff;
+    position: absolute;
+    bottom: -20px;
+    right: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 18px;
 }
 
 #reset-btn:hover {
@@ -302,9 +376,8 @@ body {
         min-height: 150px;
     }
     
-    .legend-item img {
-        width: 40px;
-        height: 40px;
+    .legend-panel {
+        width: 80%;
     }
 }
 
@@ -321,6 +394,15 @@ body {
     
     .coin-pile {
         min-height: 120px;
+    }
+    
+    .game-header {
+        flex-direction: column;
+    }
+    
+    .legend-button-container {
+        margin-left: 0;
+        margin-top: 10px;
     }
 }
 
@@ -346,13 +428,18 @@ body {
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    margin: 4px;
+    margin: 5px;
     border-radius: 50%;
     overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.3);
 }
 
-/* Удаляем фоновые изображения из CSS, так как теперь используются img элементы */
+.coin img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
 .coin-1 {
     background-color: #B87333;
 }
@@ -376,6 +463,16 @@ body {
 .coin-100 {
     border-radius: 5px;
     background-color: transparent;
+}
+
+.coins-grid {
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+    gap: 10px;
+    padding: 15px;
 }
 
 /* Стили для соединительной линии при перетаскивании */

@@ -15,6 +15,13 @@ body {
     align-items: center;
     padding: 0;
     margin: 0;
+    /* Отключаем прокрутку на iOS только в вертикальном направлении */
+    overflow-x: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
 }
 
 .game-container {
@@ -24,6 +31,8 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    position: relative;
+    max-height: 100%; /* Ограничиваем высоту видимой областью */
 }
 
 /* Верхняя панель с заголовком и уровнем */
@@ -35,6 +44,7 @@ body {
     justify-content: space-between;
     align-items: center;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    flex-shrink: 0; /* Запрещаем сжатие шапки */
 }
 
 .game-title {
@@ -60,6 +70,7 @@ body {
     flex-direction: column;
     position: relative;
     overflow: hidden;
+    min-height: 0; /* Позволяет правильно сжиматься на маленьких экранах */
 }
 
 /* Контейнер для кучек монет (занимает все доступное пространство) */
@@ -72,6 +83,7 @@ body {
     padding: 15px;
     position: relative;
     z-index: 2;
+    min-height: 0; /* Позволяет правильно сжиматься на маленьких экранах */
 }
 
 .coin-pile {
@@ -87,6 +99,8 @@ body {
     z-index: 10;
     cursor: pointer;
     transition: transform 0.2s ease, background-color 0.3s ease;
+    height: 100%; /* Фиксирует высоту элемента */
+    min-height: 0; /* Позволяет сжиматься на маленьких экранах */
 }
 
 .coin-pile:hover {
@@ -108,6 +122,7 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    overflow: hidden; /* Предотвращает вылет контента за пределы */
 }
 
 /* Слой для соединений */
@@ -130,6 +145,22 @@ svg.connections-container {
     gap: 15px;
     background-color: #f8f9fa;
     border-top: 1px solid #eee;
+    flex-shrink: 0; /* Запрещаем сжатие панели управления */
+    width: 100%;
+    position: relative;
+    z-index: 15; /* Обеспечивает нахождение поверх других элементов */
+}
+
+/* Исправление для iPad и других мобильных устройств */
+@supports (-webkit-touch-callout: none) {
+    /* Стили только для iOS устройств */
+    .game-container {
+        height: -webkit-fill-available; /* Используем webkit-fill-available вместо 100vh на iOS */
+    }
+    
+    .game-controls {
+        padding-bottom: calc(15px + env(safe-area-inset-bottom)); /* Учитываем нижнюю безопасную зону */
+    }
 }
 
 .game-controls button {
@@ -427,6 +458,11 @@ svg.connections-container {
         padding: 10px 15px;
         font-size: 14px;
     }
+    
+    /* Уменьшаем размер монет на маленьких экранах */
+    .coin {
+        transform: scale(0.9);
+    }
 }
 
 @media (max-width: 480px) {
@@ -452,6 +488,11 @@ svg.connections-container {
     
     .coin-pile {
         padding: 5px;
+    }
+    
+    /* Еще сильнее уменьшаем размер монет */
+    .coin {
+        transform: scale(0.8);
     }
 }
 

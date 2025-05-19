@@ -44,6 +44,9 @@ class CoinPairingGame {
         
         // Инициализируем игровые элементы
         this.initElements();
+        
+        // Адаптация к высоте экрана (iPad и мобильные устройства)
+        this.adjustForMobileViewport();
     }
     
     /**
@@ -95,12 +98,65 @@ class CoinPairingGame {
     }
     
     /**
+     * Адаптирует размеры игры к мобильным устройствам с учетом высоты viewport
+     */
+    adjustForMobileViewport() {
+        // Выполняем первичную настройку
+        this.updateForViewportHeight();
+        
+        // Обновляем при изменении ориентации и размера окна
+        window.addEventListener('resize', () => {
+            this.updateForViewportHeight();
+        });
+        
+        window.addEventListener('orientationchange', () => {
+            // Небольшая задержка после изменения ориентации
+            setTimeout(() => {
+                this.updateForViewportHeight();
+            }, 100);
+        });
+    }
+    
+    /**
+     * Обновляет размеры игрового контейнера с учетом фактической высоты viewport
+     */
+    updateForViewportHeight() {
+        const gameContainer = document.querySelector('.game-container');
+        const gameControls = document.querySelector('.game-controls');
+        const mainGameArea = document.querySelector('.main-game-area');
+        
+        if (!gameContainer || !gameControls || !mainGameArea) return;
+        
+        // Получаем фактическую высоту viewport (учитывает панель браузера)
+        const viewportHeight = window.innerHeight;
+        console.log(`Viewport height: ${viewportHeight}px`);
+        
+        // Устанавливаем высоту для контейнера игры
+        gameContainer.style.height = `${viewportHeight}px`;
+        
+        // Обновляем размеры SVG контейнера
+        this.adjustSVGSize();
+        
+        // Убеждаемся, что нижняя панель всегда видна
+        const headerHeight = document.querySelector('.game-header')?.offsetHeight || 0;
+        const controlsHeight = gameControls.offsetHeight;
+        
+        // Вычисляем максимальную доступную высоту для игрового поля
+        const availableHeight = viewportHeight - headerHeight - controlsHeight;
+        mainGameArea.style.height = `${availableHeight}px`;
+        
+        // Обновляем положение существующих соединений
+        this.updateConnectionsPositions();
+    }
+    
+    /**
      * Подстраивает размер SVG под размер контейнера
      */
     adjustSVGSize() {
         if (this.connectionsLayer) {
             const gameContainer = document.querySelector('.game-container');
-            const gameRect = gameContainer.getBoundingClientRect();
+            const mainGameArea = document.querySelector('.main-game-area');
+            const gameRect = mainGameArea ? mainGameArea.getBoundingClientRect() : gameContainer.getBoundingClientRect();
             
             // Устанавливаем атрибуты width и height для SVG
             this.connectionsLayer.setAttribute('width', gameRect.width);
@@ -125,8 +181,12 @@ class CoinPairingGame {
             return;
         }
         
+        const mainGameArea = document.querySelector('.main-game-area');
         const gameContainer = document.querySelector('.game-container');
-        const gameRect = gameContainer.getBoundingClientRect();
+        const coordinateContainer = mainGameArea || gameContainer;
+        
+        // Получаем прямоугольник контейнера для вычисления координат
+        const containerRect = coordinateContainer.getBoundingClientRect();
         
         this.connections.forEach(connection => {
             const startPile = document.getElementById(connection.start);
@@ -136,10 +196,10 @@ class CoinPairingGame {
                 const startRect = startPile.getBoundingClientRect();
                 const endRect = endPile.getBoundingClientRect();
                 
-                const startX = startRect.left + startRect.width / 2 - gameRect.left;
-                const startY = startRect.top + startRect.height / 2 - gameRect.top;
-                const endX = endRect.left + endRect.width / 2 - gameRect.left;
-                const endY = endRect.top + endRect.height / 2 - gameRect.top;
+                const startX = startRect.left + startRect.width / 2 - containerRect.left;
+                const startY = startRect.top + startRect.height / 2 - containerRect.top;
+                const endX = endRect.left + endRect.width / 2 - containerRect.left;
+                const endY = endRect.top + endRect.height / 2 - containerRect.top;
                 
                 connection.line.setAttribute('x1', startX);
                 connection.line.setAttribute('y1', startY);
@@ -214,249 +274,234 @@ class CoinPairingGame {
         
         // Находим контейнер игры для корректировки координат
         const gameContainer = document.querySelector('.game-container');
+        const mainGameArea = document.querySelector('.main-game-area');
+        
+        // Определяем контейнер для вычисления координат - используем main-game-area вместо game-container
+        const coordinateContainer = mainGameArea || gameContainer;
         
         // Добавляем обработчики для каждой кучки
         this.pileContainers.forEach(pile => {
             // Стилизуем курсор для индикации возможности перетаскивания
             pile.style.cursor = 'pointer';
             
-            // Начало перетаскивания
+            // Начало перетаскивания - используем mousedown и функцию общей обработки
             pile.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                console.log("Mousedown on pile:", pile.id);
-                
-                // Удаляем все существующие соединения с этой кучкой
-                this.removeConnectionsForPile(pile);
-                
-                // Обновляем размеры контейнера игры для корректных координат
-                const gameRect = gameContainer.getBoundingClientRect();
-                
-                // Начинаем рисовать линию
-                this.dragging = true;
-                this.lineStart = pile;
-                
-                // Получаем координаты центра кучки относительно SVG
-                const rect = pile.getBoundingClientRect();
-                const centerX = rect.left + rect.width / 2 - gameRect.left;
-                const centerY = rect.top + rect.height / 2 - gameRect.top;
-                
-                // Создаем новую линию
-                this.currentLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                this.currentLine.setAttribute('x1', centerX);
-                this.currentLine.setAttribute('y1', centerY);
-                this.currentLine.setAttribute('x2', centerX);
-                this.currentLine.setAttribute('y2', centerY);
-                this.currentLine.setAttribute('stroke', '#2196F3'); // Синий цвет для всех соединений
-                this.currentLine.setAttribute('stroke-width', '4');
-                this.currentLine.setAttribute('data-start-pile', pile.id);
-                
-                // Добавляем линию в SVG контейнер
-                this.connectionsLayer.appendChild(this.currentLine);
+                this.handleDragStart(e, pile, 'mouse');
             });
             
-            // Добавляем обработчик для сенсорных устройств
+            // Начало касания - используем touchstart и функцию общей обработки
             pile.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                console.log("Touchstart on pile:", pile.id);
-                
-                // Удаляем все существующие соединения с этой кучкой
-                this.removeConnectionsForPile(pile);
-                
-                // Обновляем размеры контейнера игры для корректных координат
-                const gameRect = gameContainer.getBoundingClientRect();
-                
-                // Получаем координаты первого касания
-                const touch = e.touches[0];
-                
-                // Начинаем рисовать линию
-                this.dragging = true;
-                this.lineStart = pile;
-                
-                // Получаем координаты центра кучки относительно SVG
-                const rect = pile.getBoundingClientRect();
-                const centerX = rect.left + rect.width / 2 - gameRect.left;
-                const centerY = rect.top + rect.height / 2 - gameRect.top;
-                
-                // Создаем новую линию
-                this.currentLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                this.currentLine.setAttribute('x1', centerX);
-                this.currentLine.setAttribute('y1', centerY);
-                this.currentLine.setAttribute('x2', centerX);
-                this.currentLine.setAttribute('y2', centerY);
-                this.currentLine.setAttribute('stroke', '#2196F3'); // Синий цвет для всех соединений
-                this.currentLine.setAttribute('stroke-width', '4');
-                this.currentLine.setAttribute('data-start-pile', pile.id);
-                
-                // Добавляем линию в SVG контейнер
-                this.connectionsLayer.appendChild(this.currentLine);
-            });
+                // Предотвращаем preventDefault, чтобы не блокировать прокрутку для всей страницы
+                // Вместо этого применяем его только при активном перетаскивании
+                this.handleDragStart(e, pile, 'touch');
+            }, { passive: true });
         });
         
         // Обработчик для движения мыши
         document.addEventListener('mousemove', (e) => {
             if (this.dragging && this.currentLine) {
-                // Обновляем размеры контейнера игры для корректных координат
-                const gameRect = gameContainer.getBoundingClientRect();
-                
-                // Получаем координаты курсора
-                const mouseX = e.clientX - gameRect.left;
-                const mouseY = e.clientY - gameRect.top;
-                
-                // Обновляем конечную точку линии
-                this.currentLine.setAttribute('x2', mouseX);
-                this.currentLine.setAttribute('y2', mouseY);
+                e.preventDefault();
+                this.handleDragMove(e, 'mouse');
             }
         });
         
-        // Обработчик для сенсорного перемещения
+        // Обработчик для сенсорного перемещения - используем passive: false, чтобы иметь возможность вызвать preventDefault
         document.addEventListener('touchmove', (e) => {
             if (this.dragging && this.currentLine) {
+                // Предотвращаем прокрутку ТОЛЬКО когда активно перетаскивание
                 e.preventDefault();
-                
-                // Обновляем размеры контейнера игры для корректных координат
-                const gameRect = gameContainer.getBoundingClientRect();
-                
-                // Получаем координаты первого касания
-                const touch = e.touches[0];
-                const touchX = touch.clientX - gameRect.left;
-                const touchY = touch.clientY - gameRect.top;
-                
-                // Обновляем конечную точку линии
-                this.currentLine.setAttribute('x2', touchX);
-                this.currentLine.setAttribute('y2', touchY);
+                this.handleDragMove(e, 'touch');
             }
-        });
+        }, { passive: false });
         
-        // Обработчик для окончания перетаскивания
+        // Обработчик для окончания перетаскивания мышью
         document.addEventListener('mouseup', (e) => {
-            if (!this.dragging || !this.currentLine) {
-                return;
+            if (this.dragging) {
+                this.handleDragEnd(e, 'mouse');
             }
-            
-            console.log("Mouse up - checking for connection");
-            
-            // Обновляем размеры контейнера игры для корректных координат
-            const gameRect = gameContainer.getBoundingClientRect();
-            
-            // Получаем координаты курсора
-            const mouseX = e.clientX;
-            const mouseY = e.clientY;
-            
-            // Проверяем, находится ли курсор над какой-либо кучкой
-            this.pileContainers.forEach(pile => {
-                const rect = pile.getBoundingClientRect();
-                
-                // Если курсор над кучкой и это не та же самая кучка, откуда началось перетаскивание
-                if (
-                    pile !== this.lineStart &&
-                    mouseX >= rect.left && 
-                    mouseX <= rect.right && 
-                    mouseY >= rect.top && 
-                    mouseY <= rect.bottom
-                ) {
-                    // Обрабатываем успешное соединение
-                    console.log(`Connected ${this.lineStart.id} to ${pile.id}`);
-                    
-                    // Подстраиваем линию к центрам кучек
-                    const startRect = this.lineStart.getBoundingClientRect();
-                    const endRect = pile.getBoundingClientRect();
-                    
-                    const startX = startRect.left + startRect.width / 2 - gameRect.left;
-                    const startY = startRect.top + startRect.height / 2 - gameRect.top;
-                    const endX = endRect.left + endRect.width / 2 - gameRect.left;
-                    const endY = endRect.top + endRect.height / 2 - gameRect.top;
-                    
-                    this.currentLine.setAttribute('x1', startX);
-                    this.currentLine.setAttribute('y1', startY);
-                    this.currentLine.setAttribute('x2', endX);
-                    this.currentLine.setAttribute('y2', endY);
-                    
-                    // Используем новый метод для создания соединения
-                    this.createConnection(this.lineStart, pile, this.currentLine);
-                    
-                    // Сбрасываем текущую линию
-                    this.currentLine = null;
-                    
-                    return;
-                }
-            });
-            
-            // Если соединение не было создано, удаляем текущую линию
-            if (this.currentLine && this.currentLine.parentNode) {
-                this.currentLine.parentNode.removeChild(this.currentLine);
-            }
-            
-            // Сбрасываем состояние перетаскивания
-            this.dragging = false;
-            this.lineStart = null;
-            this.currentLine = null;
         });
         
-        // Обработчик окончания касания для сенсорных устройств
+        // Обработчик для окончания касания
         document.addEventListener('touchend', (e) => {
-            if (!this.dragging || !this.currentLine) {
-                return;
+            if (this.dragging) {
+                this.handleDragEnd(e, 'touch');
             }
-            
-            console.log("Touch end - checking for connection");
-            
-            // Обновляем размеры контейнера игры для корректных координат
-            const gameRect = gameContainer.getBoundingClientRect();
-            
-            // Получаем координаты последнего касания
-            const touch = e.changedTouches[0];
-            const touchX = touch.clientX;
-            const touchY = touch.clientY;
-            
-            // Проверяем, находится ли касание над какой-либо кучкой
-            this.pileContainers.forEach(pile => {
-                const rect = pile.getBoundingClientRect();
-                
-                // Если касание над кучкой и это не та же самая кучка, откуда началось перетаскивание
-                if (
-                    pile !== this.lineStart &&
-                    touchX >= rect.left && 
-                    touchX <= rect.right && 
-                    touchY >= rect.top && 
-                    touchY <= rect.bottom
-                ) {
-                    // Обрабатываем успешное соединение
-                    console.log(`Touch connected ${this.lineStart.id} to ${pile.id}`);
-                    
-                    // Подстраиваем линию к центрам кучек
-                    const startRect = this.lineStart.getBoundingClientRect();
-                    const endRect = pile.getBoundingClientRect();
-                    
-                    const startX = startRect.left + startRect.width / 2 - gameRect.left;
-                    const startY = startRect.top + startRect.height / 2 - gameRect.top;
-                    const endX = endRect.left + endRect.width / 2 - gameRect.left;
-                    const endY = endRect.top + endRect.height / 2 - gameRect.top;
-                    
-                    this.currentLine.setAttribute('x1', startX);
-                    this.currentLine.setAttribute('y1', startY);
-                    this.currentLine.setAttribute('x2', endX);
-                    this.currentLine.setAttribute('y2', endY);
-                    
-                    // Используем новый метод для создания соединения
-                    this.createConnection(this.lineStart, pile, this.currentLine);
-                    
-                    // Сбрасываем текущую линию
-                    this.currentLine = null;
-                    
-                    return;
-                }
-            });
-            
-            // Если соединение не было создано, удаляем текущую линию
-            if (this.currentLine && this.currentLine.parentNode) {
+        });
+        
+        // Обработчик для отмены перетаскивания при выходе за пределы окна
+        document.addEventListener('mouseleave', () => {
+            if (this.dragging && this.currentLine && this.currentLine.parentNode) {
                 this.currentLine.parentNode.removeChild(this.currentLine);
+                this.dragging = false;
+                this.lineStart = null;
+                this.currentLine = null;
             }
-            
-            // Сбрасываем состояние перетаскивания
+        });
+    }
+    
+    /**
+     * Обрабатывает начало перетаскивания (общая функция для mouse и touch)
+     * @param {Event} e - Событие
+     * @param {HTMLElement} pile - Элемент кучки
+     * @param {string} eventType - Тип события ('mouse' или 'touch')
+     */
+    handleDragStart(e, pile, eventType) {
+        console.log(`${eventType === 'mouse' ? 'Mousedown' : 'Touchstart'} on pile:`, pile.id);
+        
+        // При начале перетаскивания, отменяем предотвращение по умолчанию
+        // чтобы не блокировать другие действия, пока нет активного drag
+        if (eventType === 'mouse') {
+            e.preventDefault();
+        }
+        
+        // Удаляем все существующие соединения с этой кучкой
+        this.removeConnectionsForPile(pile);
+        
+        // Находим контейнер для вычисления координат
+        const mainGameArea = document.querySelector('.main-game-area');
+        const gameContainer = document.querySelector('.game-container');
+        const coordinateContainer = mainGameArea || gameContainer;
+        
+        // Обновляем размеры контейнера для корректных координат
+        const containerRect = coordinateContainer.getBoundingClientRect();
+        
+        // Начинаем рисовать линию
+        this.dragging = true;
+        this.lineStart = pile;
+        
+        // Получаем координаты центра кучки относительно контейнера координат
+        const rect = pile.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2 - containerRect.left;
+        const centerY = rect.top + rect.height / 2 - containerRect.top;
+        
+        // Создаем новую линию
+        this.currentLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        this.currentLine.setAttribute('x1', centerX);
+        this.currentLine.setAttribute('y1', centerY);
+        this.currentLine.setAttribute('x2', centerX);
+        this.currentLine.setAttribute('y2', centerY);
+        this.currentLine.setAttribute('stroke', '#2196F3'); // Синий цвет для всех соединений
+        this.currentLine.setAttribute('stroke-width', '4');
+        this.currentLine.setAttribute('data-start-pile', pile.id);
+        
+        // Добавляем линию в SVG контейнер
+        this.connectionsLayer.appendChild(this.currentLine);
+    }
+    
+    /**
+     * Обрабатывает движение при перетаскивании (общая функция для mouse и touch)
+     * @param {Event} e - Событие
+     * @param {string} eventType - Тип события ('mouse' или 'touch')
+     */
+    handleDragMove(e, eventType) {
+        // Находим контейнер для вычисления координат
+        const mainGameArea = document.querySelector('.main-game-area');
+        const gameContainer = document.querySelector('.game-container');
+        const coordinateContainer = mainGameArea || gameContainer;
+        
+        // Обновляем размеры контейнера для корректных координат
+        const containerRect = coordinateContainer.getBoundingClientRect();
+        
+        // Получаем координаты курсора или касания
+        let moveX, moveY;
+        
+        if (eventType === 'mouse') {
+            moveX = e.clientX - containerRect.left;
+            moveY = e.clientY - containerRect.top;
+        } else { // touch
+            const touch = e.touches[0];
+            moveX = touch.clientX - containerRect.left;
+            moveY = touch.clientY - containerRect.top;
+        }
+        
+        // Обновляем конечную точку линии
+        this.currentLine.setAttribute('x2', moveX);
+        this.currentLine.setAttribute('y2', moveY);
+    }
+    
+    /**
+     * Обрабатывает окончание перетаскивания (общая функция для mouse и touch)
+     * @param {Event} e - Событие
+     * @param {string} eventType - Тип события ('mouse' или 'touch')
+     */
+    handleDragEnd(e, eventType) {
+        if (!this.currentLine) {
             this.dragging = false;
             this.lineStart = null;
-            this.currentLine = null;
+            return;
+        }
+        
+        console.log(`${eventType === 'mouse' ? 'Mouse up' : 'Touch end'} - checking for connection`);
+        
+        // Находим контейнер для вычисления координат
+        const mainGameArea = document.querySelector('.main-game-area');
+        const gameContainer = document.querySelector('.game-container');
+        const coordinateContainer = mainGameArea || gameContainer;
+        
+        // Обновляем размеры контейнера для корректных координат
+        const containerRect = coordinateContainer.getBoundingClientRect();
+        
+        // Получаем координаты курсора или касания
+        let endX, endY;
+        
+        if (eventType === 'mouse') {
+            endX = e.clientX;
+            endY = e.clientY;
+        } else { // touch
+            const touch = e.changedTouches[0];
+            endX = touch.clientX;
+            endY = touch.clientY;
+        }
+        
+        // Проверяем, находится ли курсор над какой-либо кучкой
+        let connectionMade = false;
+        
+        this.pileContainers.forEach(pile => {
+            if (connectionMade) return; // Если соединение уже создано, прекращаем цикл
+            
+            const rect = pile.getBoundingClientRect();
+            
+            // Если курсор над кучкой и это не та же самая кучка, откуда началось перетаскивание
+            if (pile !== this.lineStart &&
+                endX >= rect.left && 
+                endX <= rect.right && 
+                endY >= rect.top && 
+                endY <= rect.bottom) {
+                
+                // Обрабатываем успешное соединение
+                console.log(`Connected ${this.lineStart.id} to ${pile.id}`);
+                
+                // Подстраиваем линию к центрам кучек
+                const startRect = this.lineStart.getBoundingClientRect();
+                const endRect = pile.getBoundingClientRect();
+                
+                const startX = startRect.left + startRect.width / 2 - containerRect.left;
+                const startY = startRect.top + startRect.height / 2 - containerRect.top;
+                const endX = endRect.left + endRect.width / 2 - containerRect.left;
+                const endY = endRect.top + endRect.height / 2 - containerRect.top;
+                
+                this.currentLine.setAttribute('x1', startX);
+                this.currentLine.setAttribute('y1', startY);
+                this.currentLine.setAttribute('x2', endX);
+                this.currentLine.setAttribute('y2', endY);
+                
+                // Используем новый метод для создания соединения
+                this.createConnection(this.lineStart, pile, this.currentLine);
+                
+                // Помечаем, что соединение создано
+                connectionMade = true;
+            }
         });
+        
+        // Если соединение не было создано, удаляем текущую линию
+        if (!connectionMade && this.currentLine && this.currentLine.parentNode) {
+            this.currentLine.parentNode.removeChild(this.currentLine);
+        }
+        
+        // Сбрасываем состояние перетаскивания
+        this.dragging = false;
+        this.lineStart = null;
+        this.currentLine = null;
     }
     
     /**

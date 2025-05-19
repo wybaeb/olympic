@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>Узнай время по часам - развивающая игра</title>
+<style>
+    html,body{
+        margin:0;
+        padding:0;
+        font-family:Arial, Helvetica, sans-serif;
+        background:#f5f5f5;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+    }
+    h1{margin:20px 0 10px;font-size:1.6rem;}
+    .game-info {
+        display: flex;
+        justify-content: space-between;
+        width: 600px;
+        padding: 10px 0;
+        margin-bottom: 10px;
+        font-size: 1.2rem;
+        align-items: center;
+    }
+    .level {
+        font-weight: bold;
+        color: #2196F3;
+    }
+    .progress {
+        color: #4CAF50;
+        font-weight: bold;
+    }
+    .level-select-container {
+        display: inline-block;
+        margin-left: 10px;
+        position: relative;
+    }
+    .level-select {
+        padding: 4px 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background-color: #fff;
+        font-size: 0.9rem;
+        cursor: pointer;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23333'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 4px center;
+        background-size: 16px;
+        padding-right: 24px;
+    }
+    .level-select:focus {
+        outline: none;
+        border-color: #2196F3;
+        box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+    }
+    .game-container {
+        position: relative;
+    }
+    canvas {
+        background:#fff;
+        box-shadow:0 2px 6px rgba(0,0,0,0.2);
+        border-radius: 50%;
+        display: block;
+        margin: 0 auto;
+    }
+    .input-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 15px;
+        width: 100%;
+        max-width: 600px;
+        justify-content: center;
+    }
+    .input-container input {
+        width: 60px;
+        padding: 8px;
+        font-size: 1.2rem;
+        border: 2px solid #ccc;
+        border-radius: 4px;
+        text-align: center;
+    }
+    .input-container input:focus {
+        border-color: #2196F3;
+        outline: none;
+    }
+    .btn-next {
+        padding: 8px 16px;
+        background: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1.2rem;
+    }
+    .btn-next:hover {
+        background: #45a049;
+    }
+    .message {
+        margin-top: 15px;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: bold;
+        font-size: 1.2rem;
+        text-align: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        min-width: 300px;
+    }
+    .success {
+        background-color: rgba(76, 175, 80, 0.9);
+        color: white;
+    }
+    .error {
+        background-color: rgba(244, 67, 54, 0.9);
+        color: white;
+    }
+    .level-up {
+        background-color: rgba(33, 150, 243, 0.9);
+        color: white;
+        font-size: 1.5rem;
+    }
+</style>
+</head>
+<body>
+<h1>Узнай время по часам!</h1>
+<div class="game-info">
+    <div class="level">
+        Уровень: <span id="currentLevel">1</span>
+        <div class="level-select-container">
+            <select id="levelSelect" class="level-select" title="Выбрать уровень"></select>
+        </div>
+    </div>
+    <div class="progress">Прогресс: <span id="progress">0/3</span></div>
+</div>
+<div class="game-container">
+    <canvas id="clockCanvas" width="350" height="350"></canvas>
+    <div id="message" class="message"></div>
+</div>
+<div class="input-container">
+    <label for="hourInput">Часы:</label>
+    <input type="number" id="hourInput" min="1" max="12" autocomplete="off">
+    <label for="minuteInput">Минуты:</label>
+    <input type="number" id="minuteInput" min="0" max="59" autocomplete="off">
+    <button id="btnNext" class="btn-next">Далее</button>
+</div>
+<script>
+(function(){
+    const canvas = document.getElementById('clockCanvas');
+    const ctx = canvas.getContext('2d');
+    const hourInput = document.getElementById('hourInput');
+    const minuteInput = document.getElementById('minuteInput');
+    const btnNext = document.getElementById('btnNext');
+    const messageEl = document.getElementById('message');
+    const levelEl = document.getElementById('currentLevel');
+    const progressEl = document.getElementById('progress');
+    const levelSelect = document.getElementById('levelSelect');
+
+    let currentLevel = 1;
+    let successCount = 0;
+    let targetHour = 0;
+    let targetMinute = 0;
+    const SECRET_KEY = "cl0ck2024!";
+
+    // --- Drawing functions ---
+    function drawClock(hour, minute) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const cx = canvas.width/2;
+        const cy = canvas.height/2;
+        const radius = 140;
+        // Draw face
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, 2*Math.PI);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = '#222';
+        ctx.stroke();
+        // Draw ticks
+        for(let i=0;i<12;i++){
+            const angle = (i-3)*Math.PI/6;
+            ctx.beginPath();
+            ctx.moveTo(cx + Math.cos(angle)*(radius-10), cy + Math.sin(angle)*(radius-10));
+            ctx.lineTo(cx + Math.cos(angle)*(radius-30), cy + Math.sin(angle)*(radius-30));
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#222';
+            ctx.stroke();
+        }
+        // Draw numbers
+        ctx.font = '22px Arial';
+        ctx.fillStyle = '#222';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for(let i=1;i<=12;i++){
+            const angle = (i-3)*Math.PI/6;
+            ctx.fillText(i, cx + Math.cos(angle)*(radius-48), cy + Math.sin(angle)*(radius-48));
+        }
+        // Draw hour hand
+        let hourAngle = ((hour%12) + minute/60)*Math.PI/6 - Math.PI/2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(hourAngle)*(radius-70), cy + Math.sin(hourAngle)*(radius-70));
+        ctx.lineWidth = 10;
+        ctx.strokeStyle = '#111';
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        // Draw minute hand
+        let minAngle = (minute/60)*2*Math.PI - Math.PI/2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(minAngle)*(radius-40), cy + Math.sin(minAngle)*(radius-40));
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = '#111';
+        ctx.stroke();
+        // Draw center
+        ctx.beginPath();
+        ctx.arc(cx, cy, 8, 0, 2*Math.PI);
+        ctx.fillStyle = '#111';
+        ctx.fill();
+        ctx.restore();
+    }
+
+    // --- Game logic ---
+    function getMinuteStep(level) {
+        if (level === 1) return 15;
+        if (level === 2) return 10;
+        if (level === 3) return 5;
+        return 1;
+    }
+    function createNewTask() {
+        hourInput.value = '';
+        minuteInput.value = '';
+        setTimeout(()=>hourInput.focus(), 100);
+        // Генерируем время
+        const minuteStep = getMinuteStep(currentLevel);
+        targetHour = Math.floor(Math.random()*12)+1;
+        const minuteSteps = Math.floor(60/minuteStep);
+        targetMinute = Math.floor(Math.random()*minuteSteps)*minuteStep;
+        drawClock(targetHour, targetMinute);
+        progressEl.textContent = `${successCount}/3`;
+    }
+    function showMessage(text, type) {
+        messageEl.textContent = text;
+        messageEl.className = `message ${type}`;
+        messageEl.style.opacity = 1;
+        setTimeout(() => {
+            messageEl.style.opacity = 0;
+        }, 2000);
+    }
+    function checkAnswer() {
+        const userHour = parseInt(hourInput.value, 10);
+        const userMinute = parseInt(minuteInput.value, 10);
+        if (isNaN(userHour) || isNaN(userMinute)) {
+            showMessage('Введите часы и минуты!', 'error');
+            return;
+        }
+        // Приводим к формату 12-часового цикла
+        let correct = (userHour === targetHour) && (userMinute === targetMinute);
+        if (correct) {
+            successCount++;
+            if (successCount >= 3) {
+                currentLevel++;
+                successCount = 0;
+                levelEl.textContent = currentLevel;
+                showMessage(`Поздравляем! Уровень ${currentLevel}`, 'level-up');
+                updateLevelHash();
+            } else {
+                showMessage('Правильно!', 'success');
+            }
+            setTimeout(createNewTask, 1500);
+        } else {
+            successCount = 0;
+            showMessage(`Неверно! Было: ${targetHour}:${targetMinute.toString().padStart(2,'0')}`, 'error');
+            progressEl.textContent = `${successCount}/3`;
+            setTimeout(createNewTask, 2500);
+        }
+    }
+    btnNext.addEventListener('click', checkAnswer);
+    [hourInput, minuteInput].forEach(input => {
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                checkAnswer();
+            }
+        });
+    });
+    // --- Level select and hash logic ---
+    for (let i = 1; i <= 100; i++) {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = `Уровень ${i}`;
+        levelSelect.appendChild(option);
+    }
+    levelSelect.addEventListener('change', function() {
+        const selectedLevel = parseInt(this.value);
+        if (selectedLevel !== currentLevel) {
+            currentLevel = selectedLevel;
+            successCount = 0;
+            levelEl.textContent = currentLevel;
+            progressEl.textContent = `${successCount}/3`;
+            updateLevelHash();
+            createNewTask();
+            showMessage(`Переход на уровень ${currentLevel}`, 'level-up');
+        }
+    });
+    function encodeLevelToHash(level) {
+        const salt = generateRandomString(5);
+        const levelStr = level.toString().padStart(3, '0');
+        let encoded = '';
+        for (let i = 0; i < levelStr.length; i++) {
+            const charCode = levelStr.charCodeAt(i);
+            const keyChar = SECRET_KEY.charCodeAt(i % SECRET_KEY.length);
+            encoded += String.fromCharCode(charCode ^ keyChar);
+        }
+        const timestamp = Date.now() % 10000;
+        const dataToEncode = salt + encoded + timestamp.toString();
+        return btoa(dataToEncode).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+    }
+    function decodeLevelFromHash(hash) {
+        try {
+            const decoded = atob(hash.replace(/-/g, '+').replace(/_/g, '/'));
+            const encodedLevel = decoded.substr(5, 3);
+            let levelStr = '';
+            for (let i = 0; i < encodedLevel.length; i++) {
+                const charCode = encodedLevel.charCodeAt(i);
+                const keyChar = SECRET_KEY.charCodeAt(i % SECRET_KEY.length);
+                levelStr += String.fromCharCode(charCode ^ keyChar);
+            }
+            return parseInt(levelStr, 10);
+        } catch (e) {
+            return null;
+        }
+    }
+    function generateRandomString(length) {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    }
+    function checkLevelFromHash() {
+        const hash = window.location.hash.substr(1);
+        if (hash && hash.length > 0) {
+            try {
+                const level = decodeLevelFromHash(hash);
+                if (level && level > 0 && level <= 100) {
+                    currentLevel = level;
+                }
+            } catch (e) {}
+        }
+    }
+    function updateLevelHash() {
+        const hash = encodeLevelToHash(currentLevel);
+        window.location.hash = hash;
+        levelSelect.value = currentLevel;
+    }
+    // --- Init ---
+    function initGame() {
+        checkLevelFromHash();
+        levelEl.textContent = currentLevel;
+        levelSelect.value = currentLevel;
+        createNewTask();
+    }
+    initGame();
+})();
+</script>
+</body>
+</html> 

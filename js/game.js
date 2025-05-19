@@ -12,24 +12,12 @@ class CoinPairingGame {
         // Текущий уровень игры
         this.level = 1;
         
-        // Предопределенные пары кучек для каждого уровня
-        this.levelData = {
-            1: [
-                { amount: 150, pair: ["1×$1, 1×50¢", "6×25¢"] },
-                { amount: 200, pair: ["2×$1", "8×25¢"] },
-                { amount: 175, pair: ["1×$1, 3×25¢", "7×25¢"] }
-            ],
-            2: [
-                { amount: 250, pair: ["2×$1, 2×25¢", "10×25¢"] },
-                { amount: 300, pair: ["3×$1", "12×25¢"] },
-                { amount: 225, pair: ["2×$1, 1×25¢", "9×25¢"] }
-            ],
-            3: [
-                { amount: 350, pair: ["3×$1, 2×25¢", "14×25¢"] },
-                { amount: 400, pair: ["4×$1", "16×25¢"] },
-                { amount: 325, pair: ["3×$1, 1×25¢", "13×25¢"] }
-            ]
-        };
+        // Базовые пары кучек (будут масштабироваться в зависимости от уровня)
+        this.basePairs = [
+            { relativeAmount: 150, basePair: ["$1 и 50¢", "25¢"] },
+            { relativeAmount: 200, basePair: ["$1", "25¢"] },
+            { relativeAmount: 175, basePair: ["$1 и 25¢", "25¢"] }
+        ];
         
         // Состояние соединений
         this.connections = [];
@@ -366,8 +354,8 @@ class CoinPairingGame {
     startLevel(level) {
         console.log(`Starting level ${level}...`);
         
-        // Получаем данные для текущего уровня
-        const levelData = this.levelData[level] || this.levelData[1];
+        // Генерируем данные для текущего уровня
+        const levelData = this.generateLevelData(level);
         
         // Отображаем кучки на экране
         this.renderPiles(levelData);
@@ -377,19 +365,145 @@ class CoinPairingGame {
     }
     
     /**
-     * Форматирует сумму для отображения
-     * @param {number} amount - Сумма в центах
-     * @returns {string} - Форматированная сумма
+     * Генерирует данные для уровня с учетом формулы масштабирования
+     * @param {number} level - Номер уровня
+     * @returns {Array} - Данные для уровня
      */
-    formatAmount(amount) {
-        const dollars = Math.floor(amount / 100);
-        const cents = amount % 100;
+    generateLevelData(level) {
+        // Количество монет для текущего уровня по формуле number = 5 + level * 5
+        const coinsPerPile = 5 + level * 5;
+        console.log(`Generating level ${level} with ${coinsPerPile} coins per pile`);
         
-        if (dollars > 0) {
-            return `$${dollars}.${cents.toString().padStart(2, '0')}`;
-        } else {
-            return `${cents}¢`;
+        // Генерируем пары кучек для уровня
+        const levelData = [];
+        
+        for (const basePair of this.basePairs) {
+            // Масштабируем сумму в зависимости от уровня
+            const amount = basePair.relativeAmount + (level - 1) * 50;
+            
+            // Создаем пары монет, масштабируя количество
+            const pile1Composition = this.generateComposition(basePair.basePair[0], amount, coinsPerPile);
+            const pile2Composition = this.generateComposition(basePair.basePair[1], amount, coinsPerPile);
+            
+            levelData.push({
+                amount: amount,
+                pair: [pile1Composition, pile2Composition]
+            });
         }
+        
+        return levelData;
+    }
+    
+    /**
+     * Генерирует текстовое представление состава кучки с учетом количества монет
+     * @param {string} baseType - Базовый тип монет ("$1", "25¢" и т.д.)
+     * @param {number} totalAmount - Общая сумма в центах
+     * @param {number} targetCoins - Целевое количество монет
+     * @returns {string} - Текстовое представление состава кучки
+     */
+    generateComposition(baseType, totalAmount, targetCoins) {
+        // Разбираем базовый тип, чтобы понять какие монеты преобладают
+        let primaryDenomination = 25; // По умолчанию 25 центов
+        
+        if (baseType.includes("$1")) {
+            primaryDenomination = 100; // Доллары
+        } else if (baseType.includes("50¢")) {
+            primaryDenomination = 50; // 50 центов
+        }
+        
+        // Монеты, которые будем использовать
+        const denominations = [1, 5, 10, 25, 50, 100];
+        
+        // Создаем композицию монет
+        const coinCounts = {};
+        let remainingAmount = totalAmount;
+        let totalCoins = 0;
+        
+        // Сначала добавляем основной номинал
+        const primaryCoins = Math.min(
+            Math.floor(remainingAmount / primaryDenomination),
+            Math.ceil(targetCoins * 0.6) // Примерно 60% монет - основной номинал
+        );
+        
+        if (primaryCoins > 0) {
+            coinCounts[primaryDenomination] = primaryCoins;
+            remainingAmount -= primaryCoins * primaryDenomination;
+            totalCoins += primaryCoins;
+        }
+        
+        // Добавляем остальные монеты, чтобы достичь целевого количества
+        while (totalCoins < targetCoins && remainingAmount > 0) {
+            // Находим подходящий номинал
+            let suitableDenominations = denominations.filter(d => d <= remainingAmount);
+            
+            if (suitableDenominations.length === 0) {
+                // Если не осталось подходящих номиналов, добавляем 1 цент
+                coinCounts[1] = (coinCounts[1] || 0) + 1;
+                remainingAmount -= 1;
+            } else {
+                // Выбираем случайный номинал из подходящих
+                const randIndex = Math.floor(Math.random() * suitableDenominations.length);
+                const value = suitableDenominations[randIndex];
+                
+                coinCounts[value] = (coinCounts[value] || 0) + 1;
+                remainingAmount -= value;
+            }
+            
+            totalCoins++;
+        }
+        
+        // Если еще остались деньги, но мы достигли целевого количества монет,
+        // корректируем последнюю добавленную монету
+        if (remainingAmount > 0) {
+            // Находим наименьший номинал, который мы использовали
+            const minUsedDenomination = Math.min(...Object.keys(coinCounts).map(Number));
+            
+            // Удаляем одну монету этого номинала
+            coinCounts[minUsedDenomination]--;
+            if (coinCounts[minUsedDenomination] === 0) {
+                delete coinCounts[minUsedDenomination];
+            }
+            
+            // Добавляем монету, которая покроет оставшуюся сумму
+            const newValue = minUsedDenomination + remainingAmount;
+            coinCounts[newValue] = (coinCounts[newValue] || 0) + 1;
+        }
+        
+        // Если мы не достигли целевого количества монет, но сумма уже собрана,
+        // добавляем монетки по 1 центу и убираем что-то покрупнее
+        while (totalCoins < targetCoins) {
+            // Находим наибольший номинал, который мы использовали
+            const denominationsUsed = Object.keys(coinCounts).map(Number);
+            const maxUsedDenomination = Math.max(...denominationsUsed);
+            
+            if (maxUsedDenomination <= 1) {
+                // Если у нас остались только монеты по 1 центу, просто добавляем еще
+                coinCounts[1] = (coinCounts[1] || 0) + 1;
+            } else {
+                // Убираем одну монету наибольшего номинала
+                coinCounts[maxUsedDenomination]--;
+                if (coinCounts[maxUsedDenomination] === 0) {
+                    delete coinCounts[maxUsedDenomination];
+                }
+                
+                // Добавляем эквивалентное количество монет по 1 центу
+                coinCounts[1] = (coinCounts[1] || 0) + maxUsedDenomination;
+            }
+            
+            totalCoins++;
+        }
+        
+        // Формируем текстовое представление
+        const parts = [];
+        const values = Object.keys(coinCounts).map(Number).sort((a, b) => b - a);
+        
+        for (const value of values) {
+            const count = coinCounts[value];
+            const label = value === 100 ? '$1' : `${value}¢`;
+            parts.push(`${count}×${label}`);
+        }
+        
+        return parts.join(', ');
     }
     
     /**
@@ -527,6 +641,22 @@ class CoinPairingGame {
             setTimeout(() => {
                 alert(`Проверено ${this.connections.length} соединений. Найдено ${correctCount} правильных пар.`);
             }, 300);
+        }
+    }
+    
+    /**
+     * Форматирует сумму для отображения
+     * @param {number} amount - Сумма в центах
+     * @returns {string} - Форматированная сумма
+     */
+    formatAmount(amount) {
+        const dollars = Math.floor(amount / 100);
+        const cents = amount % 100;
+        
+        if (dollars > 0) {
+            return `$${dollars}.${cents.toString().padStart(2, '0')}`;
+        } else {
+            return `${cents}¢`;
         }
     }
 }

@@ -59,6 +59,9 @@ class CoinPairingGame {
         // Находим контейнер для соединений
         this.connectionsLayer = document.getElementById('connections-layer');
         
+        // Подстраиваем размер SVG под размер контейнера
+        this.adjustSVGSize();
+        
         // Кнопка для показа легенды
         this.legendButton = document.getElementById('show-legend');
         this.legendPanel = document.getElementById('legend-panel');
@@ -84,6 +87,61 @@ class CoinPairingGame {
     }
     
     /**
+     * Подстраивает размер SVG под размер контейнера
+     */
+    adjustSVGSize() {
+        if (this.connectionsLayer) {
+            const gameContainer = document.querySelector('.game-container');
+            const gameRect = gameContainer.getBoundingClientRect();
+            
+            // Устанавливаем атрибуты width и height для SVG
+            this.connectionsLayer.setAttribute('width', gameRect.width);
+            this.connectionsLayer.setAttribute('height', gameRect.height);
+            
+            // Устанавливаем позиционирование
+            this.connectionsLayer.style.position = 'absolute';
+            this.connectionsLayer.style.top = '0';
+            this.connectionsLayer.style.left = '0';
+            this.connectionsLayer.style.pointerEvents = 'none';
+            
+            // Обновляем положение существующих соединений
+            this.updateConnectionsPositions();
+        }
+    }
+    
+    /**
+     * Обновляет позиции всех соединительных линий
+     */
+    updateConnectionsPositions() {
+        if (!this.connections || this.connections.length === 0) {
+            return;
+        }
+        
+        const gameContainer = document.querySelector('.game-container');
+        const gameRect = gameContainer.getBoundingClientRect();
+        
+        this.connections.forEach(connection => {
+            const startPile = document.getElementById(connection.start);
+            const endPile = document.getElementById(connection.end);
+            
+            if (startPile && endPile && connection.line) {
+                const startRect = startPile.getBoundingClientRect();
+                const endRect = endPile.getBoundingClientRect();
+                
+                const startX = startRect.left + startRect.width / 2 - gameRect.left;
+                const startY = startRect.top + startRect.height / 2 - gameRect.top;
+                const endX = endRect.left + endRect.width / 2 - gameRect.left;
+                const endY = endRect.top + endRect.height / 2 - gameRect.top;
+                
+                connection.line.setAttribute('x1', startX);
+                connection.line.setAttribute('y1', startY);
+                connection.line.setAttribute('x2', endX);
+                connection.line.setAttribute('y2', endY);
+            }
+        });
+    }
+    
+    /**
      * Добавляет обработчики событий для игровых элементов
      */
     addEventListeners() {
@@ -93,6 +151,14 @@ class CoinPairingGame {
         if (this.legendButton) {
             this.legendButton.addEventListener('click', () => {
                 this.legendPanel.classList.toggle('visible');
+            });
+        }
+        
+        // Обработчик для кнопки закрытия легенды
+        const closeButton = document.getElementById('close-legend');
+        if (closeButton) {
+            closeButton.addEventListener('click', () => {
+                this.legendPanel.classList.remove('visible');
             });
         }
         
@@ -124,6 +190,11 @@ class CoinPairingGame {
             });
         }
         
+        // Обработчик изменения размера окна
+        window.addEventListener('resize', () => {
+            this.adjustSVGSize();
+        });
+        
         // Добавляем обработчики событий drag-and-drop для кучек
         this.setupDragAndDrop();
     }
@@ -140,13 +211,8 @@ class CoinPairingGame {
             return;
         }
         
-        // Получаем размеры контейнера игры для корректировки координат
+        // Находим контейнер игры для корректировки координат
         const gameContainer = document.querySelector('.game-container');
-        const gameRect = gameContainer.getBoundingClientRect();
-        
-        // Устанавливаем размеры SVG равными размерам контейнера
-        this.connectionsLayer.setAttribute('width', '100%');
-        this.connectionsLayer.setAttribute('height', '100%');
         
         // Добавляем обработчики для каждой кучки
         this.pileContainers.forEach(pile => {
@@ -157,6 +223,9 @@ class CoinPairingGame {
             pile.addEventListener('mousedown', (e) => {
                 e.preventDefault();
                 console.log("Mousedown on pile:", pile.id);
+                
+                // Обновляем размеры контейнера игры для корректных координат
+                const gameRect = gameContainer.getBoundingClientRect();
                 
                 // Начинаем рисовать линию
                 this.dragging = true;
@@ -185,6 +254,9 @@ class CoinPairingGame {
         // Обработчик для движения мыши
         document.addEventListener('mousemove', (e) => {
             if (this.dragging && this.currentLine) {
+                // Обновляем размеры контейнера игры для корректных координат
+                const gameRect = gameContainer.getBoundingClientRect();
+                
                 // Обновляем координаты конца линии относительно SVG
                 const x = e.clientX - gameRect.left;
                 const y = e.clientY - gameRect.top;
@@ -198,6 +270,9 @@ class CoinPairingGame {
         document.addEventListener('mouseup', (e) => {
             if (this.dragging && this.currentLine && this.lineStart) {
                 console.log("Mouseup, checking target...");
+                
+                // Обновляем размеры контейнера игры для корректных координат
+                const gameRect = gameContainer.getBoundingClientRect();
                 
                 // Проверяем, над какой кучкой отпустили мышь
                 let targetPile = null;
@@ -255,6 +330,9 @@ class CoinPairingGame {
             pile.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 
+                // Обновляем размеры контейнера игры для корректных координат
+                const gameRect = gameContainer.getBoundingClientRect();
+                
                 // Получаем координаты первого касания
                 const touch = e.touches[0];
                 
@@ -283,6 +361,9 @@ class CoinPairingGame {
             if (this.dragging && this.currentLine) {
                 e.preventDefault();
                 
+                // Обновляем размеры контейнера игры для корректных координат
+                const gameRect = gameContainer.getBoundingClientRect();
+                
                 // Получаем координаты первого касания
                 const touch = e.touches[0];
                 const x = touch.clientX - gameRect.left;
@@ -295,6 +376,9 @@ class CoinPairingGame {
         
         document.addEventListener('touchend', (e) => {
             if (this.dragging && this.currentLine && this.lineStart) {
+                // Обновляем размеры контейнера игры для корректных координат
+                const gameRect = gameContainer.getBoundingClientRect();
+                
                 // Завершение касания
                 // Логика аналогична mouseup, но нужно определить последнюю позицию касания
                 const touch = e.changedTouches[0];
@@ -420,7 +504,10 @@ class CoinPairingGame {
     generateComposition(baseType, totalAmount, targetCoins) {
         console.log(`Generating composition for ${baseType}, amount ${totalAmount}, target coins ${targetCoins}`);
         
-        // Разбираем базовый тип, чтобы понять какие монеты преобладают
+        // Допустимые номиналы монет (от большего к меньшему)
+        const denominations = [...this.allowedDenominations].sort((a, b) => b - a);
+        
+        // Приоритетный номинал на основе базового типа
         let primaryDenomination = 25; // По умолчанию 25 центов
         
         if (baseType.includes("$1")) {
@@ -429,52 +516,130 @@ class CoinPairingGame {
             primaryDenomination = 50; // 50 центов
         }
         
-        // Монеты, которые мы можем использовать
-        const denominations = this.allowedDenominations;
-        
-        // Создаем композицию монет
+        // Создаем композицию монет по новому алгоритму
         const coinValues = [];
         let remainingAmount = totalAmount;
         
-        // Сначала добавляем основной номинал, но не более 40% от целевого количества
-        const primaryCoins = Math.min(
-            Math.floor(remainingAmount / primaryDenomination),
-            Math.floor(targetCoins * 0.4) // Максимум 40% монет - основной номинал
-        );
-        
-        for (let i = 0; i < primaryCoins; i++) {
+        // 1. Сначала добавляем одну монету приоритетного типа (если возможно)
+        if (remainingAmount >= primaryDenomination) {
             coinValues.push(primaryDenomination);
             remainingAmount -= primaryDenomination;
         }
         
-        // Добавляем монеты других номиналов, чтобы достичь целевого количества
-        while (coinValues.length < targetCoins && remainingAmount > 0) {
-            // Находим подходящие номиналы
-            let suitableDenominations = denominations.filter(d => d <= remainingAmount);
+        // 2. Жадный алгоритм: используем монеты от больших к малым
+        while (remainingAmount > 0) {
+            let added = false;
             
-            if (suitableDenominations.length === 0) {
-                // Если не осталось подходящих номиналов, добавляем монету в 1 цент
-                coinValues.push(1);
+            for (const denom of denominations) {
+                if (denom <= remainingAmount) {
+                    coinValues.push(denom);
+                    remainingAmount -= denom;
+                    added = true;
+                    break;
+                }
+            }
+            
+            // Если не смогли добавить ни одной монеты (странный случай)
+            if (!added && remainingAmount > 0) {
+                coinValues.push(1); // Добавляем минимальную монету
                 remainingAmount -= 1;
-            } else {
-                // Выбираем случайный номинал из подходящих
-                const randIndex = Math.floor(Math.random() * suitableDenominations.length);
-                const value = suitableDenominations[randIndex];
-                
-                coinValues.push(value);
-                remainingAmount -= value;
             }
         }
         
-        // Если мы не достигли целевого количества монет, добавляем монеты по 1 центу
+        // 3. Проверяем, достаточно ли монет - если нет, разбиваем крупные
         while (coinValues.length < targetCoins) {
-            coinValues.push(1);
+            // Находим крупную монету для разбивки (номинал > 1)
+            const largeCoins = coinValues.filter(c => c > 1);
+            
+            if (largeCoins.length === 0) {
+                // Больше нечего разбивать, добавляем монеты по 1 центу
+                coinValues.push(1);
+                continue;
+            }
+            
+            // Выбираем случайную крупную монету
+            const randomIndex = Math.floor(Math.random() * largeCoins.length);
+            const coinToSplit = largeCoins[randomIndex];
+            const coinIndex = coinValues.indexOf(coinToSplit);
+            
+            // Удаляем выбранную монету
+            coinValues.splice(coinIndex, 1);
+            
+            // Разбиваем монету на более мелкие
+            let valueToDistribute = coinToSplit;
+            while (valueToDistribute > 0) {
+                // Находим подходящий номинал (меньше чем разбиваемая монета)
+                const suitableDenoms = denominations.filter(d => d < coinToSplit && d <= valueToDistribute);
+                
+                if (suitableDenoms.length > 0) {
+                    // Выбираем случайный номинал из подходящих
+                    const randomDenom = suitableDenoms[Math.floor(Math.random() * suitableDenoms.length)];
+                    coinValues.push(randomDenom);
+                    valueToDistribute -= randomDenom;
+                } else {
+                    // Добавляем монеты по 1 центу для остатка
+                    coinValues.push(1);
+                    valueToDistribute -= 1;
+                }
+            }
+        }
+        
+        // Если у нас слишком много монет, удаляем самые мелкие
+        while (coinValues.length > targetCoins) {
+            // Сортируем копию массива, чтобы найти минимальные значения
+            const sortedCoins = [...coinValues].sort((a, b) => a - b);
+            const minCoin = sortedCoins[0];
+            const minIndex = coinValues.indexOf(minCoin);
+            coinValues.splice(minIndex, 1);
         }
         
         // Перемешиваем монеты в случайном порядке
         for (let i = coinValues.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [coinValues[i], coinValues[j]] = [coinValues[j], coinValues[i]];
+        }
+        
+        // Проверка: убедимся, что сумма равна требуемой
+        const totalSum = coinValues.reduce((sum, val) => sum + val, 0);
+        if (totalSum !== totalAmount) {
+            console.error(`Error in coin composition! Expected sum: ${totalAmount}, actual sum: ${totalSum}`);
+            
+            // Корректируем ошибку, если есть
+            const difference = totalAmount - totalSum;
+            
+            if (difference > 0) {
+                // Не хватает, добавляем монеты
+                let remainingDiff = difference;
+                while (remainingDiff > 0) {
+                    // Пытаемся найти подходящую монету
+                    const suitableDenom = denominations.find(d => d <= remainingDiff);
+                    if (suitableDenom) {
+                        coinValues.push(suitableDenom);
+                        remainingDiff -= suitableDenom;
+                    } else {
+                        coinValues.push(1);
+                        remainingDiff -= 1;
+                    }
+                }
+            } else if (difference < 0) {
+                // Переизбыток, удаляем монеты
+                let remainingDiff = -difference;
+                while (remainingDiff > 0) {
+                    // Ищем монету, которую можно удалить
+                    const coinToRemove = coinValues.find(c => c <= remainingDiff);
+                    if (coinToRemove) {
+                        const index = coinValues.indexOf(coinToRemove);
+                        coinValues.splice(index, 1);
+                        remainingDiff -= coinToRemove;
+                    } else {
+                        // Не нашли подходящую монету, удаляем любую минимальную
+                        const minCoin = Math.min(...coinValues);
+                        const minIndex = coinValues.indexOf(minCoin);
+                        coinValues.splice(minIndex, 1);
+                        remainingDiff = 0; // Прерываем цикл
+                    }
+                }
+            }
         }
         
         return coinValues;
@@ -691,7 +856,18 @@ class CoinPairingGame {
         
         // Очищаем визуальное отображение соединений
         if (this.connectionsLayer) {
+            // Сохраняем атрибуты SVG
+            const width = this.connectionsLayer.getAttribute('width');
+            const height = this.connectionsLayer.getAttribute('height');
+            const style = this.connectionsLayer.getAttribute('style');
+            
+            // Очищаем SVG от всех линий
             this.connectionsLayer.innerHTML = '';
+            
+            // Восстанавливаем атрибуты
+            if (width) this.connectionsLayer.setAttribute('width', width);
+            if (height) this.connectionsLayer.setAttribute('height', height);
+            if (style) this.connectionsLayer.setAttribute('style', style);
         }
     }
     
@@ -719,10 +895,12 @@ class CoinPairingGame {
             if (connection.startAmount === connection.endAmount) {
                 // Правильное соединение - меняем цвет на зеленый
                 connection.line.setAttribute('stroke', '#4CAF50');
+                connection.line.setAttribute('stroke-width', '5');
                 correctCount++;
             } else {
                 // Неправильное соединение - меняем цвет на красный
                 connection.line.setAttribute('stroke', '#F44336');
+                connection.line.setAttribute('stroke-width', '3');
                 allCorrect = false;
             }
         }

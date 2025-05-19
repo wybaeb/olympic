@@ -613,17 +613,74 @@ class CoinPairingGame {
         // Для каждой суммы создаем пару куч с разным составом монет, но одинаковой суммой
         for (let i = 0; i < 3; i++) {
             const pairAmount = pairAmounts[i];
+            
+            // Генерируем первый набор монет
+            const firstPile = this.CashItemsSet(pairAmount, minCoins);
+            
+            // Генерируем второй набор и проверяем, что он достаточно отличается от первого
+            let secondPile;
+            let similarityAttempts = 0;
+            const maxAttempts = 3; // Максимальное количество попыток перегенерации
+            
+            do {
+                secondPile = this.CashItemsSet(pairAmount, minCoins);
+                similarityAttempts++;
+                
+                // Если уже сделали максимальное число попыток, выходим, чтобы избежать зацикливания
+                if (similarityAttempts >= maxAttempts) {
+                    console.log(`Reached max similarity check attempts for pair ${i+1}`);
+                    break;
+                }
+                
+            } while (this.arePilesSimilar(firstPile, secondPile) && similarityAttempts < maxAttempts);
+            
             pairs.push({
                 pairIndex: i,
                 amount: pairAmount,
-                piles: [
-                    this.CashItemsSet(pairAmount, minCoins),
-                    this.CashItemsSet(pairAmount, minCoins)
-                ]
+                piles: [firstPile, secondPile]
             });
         }
         
         return { pairs: pairs };
+    }
+    
+    /**
+     * Проверяет, насколько похожи два набора монет
+     * @param {Array} pile1 - Первый набор монет
+     * @param {Array} pile2 - Второй набор монет
+     * @returns {boolean} - true, если наборы слишком похожи
+     */
+    arePilesSimilar(pile1, pile2) {
+        // Создаем копии массивов и сортируем их для сравнения
+        const sortedPile1 = [...pile1].sort((a, b) => b - a);
+        const sortedPile2 = [...pile2].sort((a, b) => b - a);
+        
+        // Если длины существенно различаются, считаем наборы разными
+        if (Math.abs(pile1.length - pile2.length) > 2) {
+            return false;
+        }
+        
+        // Считаем, сколько одинаковых монет в обоих наборах
+        let matchCount = 0;
+        let commonSize = Math.min(sortedPile1.length, sortedPile2.length);
+        
+        // Сравниваем первые 5 монет (или меньше, если наборы меньше)
+        const comparisonSize = Math.min(commonSize, 5);
+        for (let i = 0; i < comparisonSize; i++) {
+            if (sortedPile1[i] === sortedPile2[i]) {
+                matchCount++;
+            }
+        }
+        
+        // Если более 70% сравниваемых монет совпадают, считаем наборы слишком похожими
+        const similarityThreshold = Math.ceil(comparisonSize * 0.7);
+        const tooSimilar = matchCount >= similarityThreshold;
+        
+        if (tooSimilar) {
+            console.log("Generated piles are too similar, regenerating...");
+        }
+        
+        return tooSimilar;
     }
     
     /**
@@ -1028,11 +1085,12 @@ class CoinPairingGame {
             }, 1500);
         } else {
             // Показываем сообщение об ошибке
-            this.showTemporaryMessage(`Правильных пар: ${correctCount} из ${this.connections.length}. Попробуйте снова.`, 'error');
+            this.showTemporaryMessage(`Правильных пар: ${correctCount} из ${this.connections.length}. Начните уровень заново.`, 'error');
             
-            // Ждем немного и сбрасываем уровень
+            // Ждем немного и возвращаем пользователя к ПЕРВОМУ заданию текущего уровня
             setTimeout(() => {
-                this.startLevel(this.level, this.currentTask);
+                this.currentTask = 1; // Сбрасываем до первого задания
+                this.startLevel(this.level, 1);
             }, 1500);
         }
     }

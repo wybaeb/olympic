@@ -312,11 +312,26 @@ class CoinPairingGame {
         
         // Обработчик для кнопки проверки ответов
         if (this.checkButton) {
-            this.checkButton.addEventListener('click', () => {
+            // Добавляем обработчик клика
+            this.checkButton.addEventListener('click', (e) => {
+                // Проверяем, не отключена ли кнопка
+                if (this.checkButton.getAttribute('aria-disabled') === 'true') {
+                    return;
+                }
                 this.checkAnswers();
             });
+            
+            // Добавляем обработчик нажатия клавиши Enter или Space для доступности
+            this.checkButton.addEventListener('keydown', (e) => {
+                if ((e.key === 'Enter' || e.key === ' ') && 
+                    this.checkButton.getAttribute('aria-disabled') !== 'true') {
+                    e.preventDefault();
+                    this.checkAnswers();
+                }
+            });
+            
             // Кнопка проверки изначально неактивна
-            this.checkButton.disabled = true;
+            this.setCheckButtonDisabled(true);
         }
         
         // Обработчик для кнопки сброса
@@ -324,10 +339,7 @@ class CoinPairingGame {
             this.resetButton.addEventListener('click', () => {
                 this.resetConnections();
                 // Деактивируем кнопку проверки после сброса
-                if (this.checkButton) {
-                    this.checkButton.disabled = true;
-                    this.checkButton.classList.remove('pulse-animation');
-                }
+                this.setCheckButtonDisabled(true);
             });
         }
         
@@ -338,6 +350,22 @@ class CoinPairingGame {
         
         // Добавляем обработчики событий drag-and-drop для кучек
         this.setupDragAndDrop();
+    }
+    
+    /**
+     * Включает или отключает кнопку проверки
+     * @param {boolean} disabled - true для отключения, false для включения
+     */
+    setCheckButtonDisabled(disabled) {
+        if (!this.checkButton) return;
+        
+        if (disabled) {
+            this.checkButton.setAttribute('aria-disabled', 'true');
+            this.checkButton.classList.remove('pulse-animation');
+        } else {
+            this.checkButton.setAttribute('aria-disabled', 'false');
+            this.checkButton.classList.add('pulse-animation');
+        }
     }
     
     /**
@@ -611,13 +639,7 @@ class CoinPairingGame {
         
         // Обновляем состояние кнопки проверки
         if (this.checkButton) {
-            if (allConnected) {
-                this.checkButton.disabled = false;
-                this.checkButton.classList.add('pulse-animation');
-            } else {
-                this.checkButton.disabled = true;
-                this.checkButton.classList.remove('pulse-animation');
-            }
+            this.setCheckButtonDisabled(!allConnected);
         }
         
         return allConnected;
@@ -1339,13 +1361,7 @@ class CoinPairingGame {
         endPile.classList.add('connected');
         
         // Проверяем, все ли кучки соединены
-        const allConnected = this.checkIfAllPilesConnected();
-        if (allConnected && this.checkButton) {
-            // Активируем кнопку проверки
-            this.checkButton.disabled = false;
-            // Добавляем анимацию пульсации
-            this.checkButton.classList.add('pulse-animation');
-        }
+        this.checkIfAllPilesConnected();
     }
     
     /**
@@ -1373,12 +1389,7 @@ class CoinPairingGame {
         });
         
         // Проверяем, все ли кучки соединены после удаления
-        const allConnected = this.checkIfAllPilesConnected();
-        if (!allConnected && this.checkButton) {
-            // Деактивируем кнопку проверки
-            this.checkButton.disabled = true;
-            this.checkButton.classList.remove('pulse-animation');
-        }
+        this.checkIfAllPilesConnected();
     }
     
     /**

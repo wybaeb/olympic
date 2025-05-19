@@ -151,6 +151,14 @@ svg.connections-container {
     z-index: 15; /* Обеспечивает нахождение поверх других элементов */
 }
 
+/* Контейнер для кнопки проверки */
+.check-btn-container {
+    flex: 1;
+    max-width: 400px;
+    position: relative;
+    display: block;
+}
+
 /* Исправление для iPad и других мобильных устройств */
 @supports (-webkit-touch-callout: none) {
     /* Стили только для iOS устройств */
@@ -170,6 +178,8 @@ svg.connections-container {
     font-size: 16px;
     cursor: pointer;
     transition: background-color 0.3s, transform 0.2s;
+    width: auto;
+    text-align: center;
 }
 
 .game-controls button:disabled {
@@ -179,16 +189,45 @@ svg.connections-container {
     opacity: 0.7;
 }
 
-#check-btn {
+/* Кастомная кнопка вместо стандартного button */
+.custom-button {
     background-color: #2ecc71;
     color: #fff;
+    padding: 12px 24px;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: normal;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    transition: background-color 0.3s, transform 0.2s;
     flex: 1;
     max-width: 400px;
 }
 
-#check-btn:not(:disabled):hover {
+.custom-button:hover:not([aria-disabled="true"]) {
     background-color: #27ae60;
     transform: scale(1.05);
+}
+
+.custom-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.3);
+}
+
+.custom-button[aria-disabled="true"] {
+    background-color: #95a5a6;
+    cursor: not-allowed;
+    transform: none;
+    opacity: 0.7;
+}
+
+/* Пульсирующая анимация для активной кнопки проверки */
+#check-btn.pulse-animation {
+    animation: pulse 1s infinite;
 }
 
 #reset-btn {
@@ -515,4 +554,25 @@ svg.connections-container {
     transform-origin: 0 0;
     pointer-events: none;
     z-index: 15;
+}
+
+.share-toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 1000;
+    pointer-events: none; /* Отключаем перехват кликов когда тост невидим */
+}
+
+.share-toast.show {
+    opacity: 1;
+    pointer-events: auto; /* Включаем перехват кликов только когда тост видимый */
 } 

@@ -322,11 +322,15 @@ body {
 
 /* Стили для отображения монет в кучке */
 .coin {
-    position: absolute;
+    position: relative;
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
     transform-origin: center;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    margin: 4px;
 }
 
 .coin-1 {

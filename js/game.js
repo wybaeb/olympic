@@ -27,6 +27,22 @@ class CoinPairingGame {
         this.lineStart = null;
         this.currentLine = null;
         
+        // Информация о монетах (размеры и масштаб)
+        this.coinData = {
+            1: { width: 100, height: 100, src: 'assets/coin-1cent.png' },
+            5: { width: 110, height: 110, src: 'assets/coin-5cent.png' },
+            10: { width: 120, height: 120, src: 'assets/coin-10cent.png' },
+            25: { width: 140, height: 140, src: 'assets/coin-25cent.png' },
+            50: { width: 160, height: 160, src: 'assets/coin-50cent.png' },
+            100: { width: 200, height: 120, src: 'assets/coin-1dollar.png' }
+        };
+        
+        // Множитель масштабирования
+        this.itemScale = 0.3;
+        
+        // Допустимые номиналы
+        this.allowedDenominations = [1, 5, 10, 25, 50, 100];
+        
         // Инициализируем игровые элементы
         this.initElements();
     }
@@ -395,13 +411,15 @@ class CoinPairingGame {
     }
     
     /**
-     * Генерирует текстовое представление состава кучки с учетом количества монет
+     * Генерирует массив монет для кучки
      * @param {string} baseType - Базовый тип монет ("$1", "25¢" и т.д.)
      * @param {number} totalAmount - Общая сумма в центах
      * @param {number} targetCoins - Целевое количество монет
-     * @returns {string} - Текстовое представление состава кучки
+     * @returns {Array} - Массив номиналов монет
      */
     generateComposition(baseType, totalAmount, targetCoins) {
+        console.log(`Generating composition for ${baseType}, amount ${totalAmount}, target coins ${targetCoins}`);
+        
         // Разбираем базовый тип, чтобы понять какие монеты преобладают
         let primaryDenomination = 25; // По умолчанию 25 центов
         
@@ -411,99 +429,55 @@ class CoinPairingGame {
             primaryDenomination = 50; // 50 центов
         }
         
-        // Монеты, которые будем использовать
-        const denominations = [1, 5, 10, 25, 50, 100];
+        // Монеты, которые мы можем использовать
+        const denominations = this.allowedDenominations;
         
         // Создаем композицию монет
-        const coinCounts = {};
+        const coinValues = [];
         let remainingAmount = totalAmount;
-        let totalCoins = 0;
         
-        // Сначала добавляем основной номинал
+        // Сначала добавляем основной номинал, но не более 40% от целевого количества
         const primaryCoins = Math.min(
             Math.floor(remainingAmount / primaryDenomination),
-            Math.ceil(targetCoins * 0.6) // Примерно 60% монет - основной номинал
+            Math.floor(targetCoins * 0.4) // Максимум 40% монет - основной номинал
         );
         
-        if (primaryCoins > 0) {
-            coinCounts[primaryDenomination] = primaryCoins;
-            remainingAmount -= primaryCoins * primaryDenomination;
-            totalCoins += primaryCoins;
+        for (let i = 0; i < primaryCoins; i++) {
+            coinValues.push(primaryDenomination);
+            remainingAmount -= primaryDenomination;
         }
         
-        // Добавляем остальные монеты, чтобы достичь целевого количества
-        while (totalCoins < targetCoins && remainingAmount > 0) {
-            // Находим подходящий номинал
+        // Добавляем монеты других номиналов, чтобы достичь целевого количества
+        while (coinValues.length < targetCoins && remainingAmount > 0) {
+            // Находим подходящие номиналы
             let suitableDenominations = denominations.filter(d => d <= remainingAmount);
             
             if (suitableDenominations.length === 0) {
-                // Если не осталось подходящих номиналов, добавляем 1 цент
-                coinCounts[1] = (coinCounts[1] || 0) + 1;
+                // Если не осталось подходящих номиналов, добавляем монету в 1 цент
+                coinValues.push(1);
                 remainingAmount -= 1;
             } else {
                 // Выбираем случайный номинал из подходящих
                 const randIndex = Math.floor(Math.random() * suitableDenominations.length);
                 const value = suitableDenominations[randIndex];
                 
-                coinCounts[value] = (coinCounts[value] || 0) + 1;
+                coinValues.push(value);
                 remainingAmount -= value;
             }
-            
-            totalCoins++;
         }
         
-        // Если еще остались деньги, но мы достигли целевого количества монет,
-        // корректируем последнюю добавленную монету
-        if (remainingAmount > 0) {
-            // Находим наименьший номинал, который мы использовали
-            const minUsedDenomination = Math.min(...Object.keys(coinCounts).map(Number));
-            
-            // Удаляем одну монету этого номинала
-            coinCounts[minUsedDenomination]--;
-            if (coinCounts[minUsedDenomination] === 0) {
-                delete coinCounts[minUsedDenomination];
-            }
-            
-            // Добавляем монету, которая покроет оставшуюся сумму
-            const newValue = minUsedDenomination + remainingAmount;
-            coinCounts[newValue] = (coinCounts[newValue] || 0) + 1;
+        // Если мы не достигли целевого количества монет, добавляем монеты по 1 центу
+        while (coinValues.length < targetCoins) {
+            coinValues.push(1);
         }
         
-        // Если мы не достигли целевого количества монет, но сумма уже собрана,
-        // добавляем монетки по 1 центу и убираем что-то покрупнее
-        while (totalCoins < targetCoins) {
-            // Находим наибольший номинал, который мы использовали
-            const denominationsUsed = Object.keys(coinCounts).map(Number);
-            const maxUsedDenomination = Math.max(...denominationsUsed);
-            
-            if (maxUsedDenomination <= 1) {
-                // Если у нас остались только монеты по 1 центу, просто добавляем еще
-                coinCounts[1] = (coinCounts[1] || 0) + 1;
-            } else {
-                // Убираем одну монету наибольшего номинала
-                coinCounts[maxUsedDenomination]--;
-                if (coinCounts[maxUsedDenomination] === 0) {
-                    delete coinCounts[maxUsedDenomination];
-                }
-                
-                // Добавляем эквивалентное количество монет по 1 центу
-                coinCounts[1] = (coinCounts[1] || 0) + maxUsedDenomination;
-            }
-            
-            totalCoins++;
+        // Перемешиваем монеты в случайном порядке
+        for (let i = coinValues.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [coinValues[i], coinValues[j]] = [coinValues[j], coinValues[i]];
         }
         
-        // Формируем текстовое представление
-        const parts = [];
-        const values = Object.keys(coinCounts).map(Number).sort((a, b) => b - a);
-        
-        for (const value of values) {
-            const count = coinCounts[value];
-            const label = value === 100 ? '$1' : `${value}¢`;
-            parts.push(`${count}×${label}`);
-        }
-        
-        return parts.join(', ');
+        return coinValues;
     }
     
     /**
@@ -558,16 +532,23 @@ class CoinPairingGame {
                 amountElement.style.textAlign = 'center';
                 amountElement.style.marginBottom = '10px';
                 
-                // Создаем элемент для отображения состава кучки
-                const compositionElement = document.createElement('div');
-                compositionElement.className = 'pile-composition';
-                compositionElement.textContent = pile.composition;
-                compositionElement.style.fontSize = '14px';
-                compositionElement.style.textAlign = 'center';
+                // Создаем флекс-контейнер для монет
+                const coinsElement = document.createElement('div');
+                coinsElement.className = 'coins-grid';
+                coinsElement.style.display = 'flex';
+                coinsElement.style.flexFlow = 'row wrap';
+                coinsElement.style.justifyContent = 'space-around';
+                coinsElement.style.alignItems = 'center';
+                coinsElement.style.width = '100%';
+                coinsElement.style.gap = '8px';
+                coinsElement.style.padding = '12px';
+                
+                // Отображаем монеты из композиции
+                this.renderCoins(coinsElement, pile.composition);
                 
                 // Добавляем элементы в контейнер
                 container.appendChild(amountElement);
-                container.appendChild(compositionElement);
+                container.appendChild(coinsElement);
                 
                 // Сохраняем данные в атрибуте
                 this.pileContainers[i].dataset.pileId = pile.id;
@@ -576,6 +557,106 @@ class CoinPairingGame {
         }
         
         console.log("Piles rendered successfully");
+    }
+    
+    /**
+     * Отображает монеты с использованием изображений в контейнере
+     * @param {HTMLElement} container - Контейнер для монет
+     * @param {Array} coinValues - Массив с номиналами монет
+     */
+    renderCoins(container, coinValues) {
+        console.log(`Rendering ${coinValues.length} coins`);
+        
+        // Создаем элементы монет и размещаем их в контейнере
+        for (const coinValue of coinValues) {
+            // Проверяем, есть ли такой номинал в нашем справочнике
+            const validDenomination = this.allowedDenominations.includes(coinValue) ? 
+                coinValue : this.allowedDenominations[0]; // По умолчанию 1 цент
+            
+            // Получаем данные о размерах монеты
+            const coinInfo = this.coinData[validDenomination];
+            
+            // Создаем элемент для монеты
+            const coinElement = document.createElement('div');
+            coinElement.className = `coin coin-${validDenomination}`;
+            
+            // Устанавливаем стили для флекс-элемента
+            coinElement.style.flex = '0 0 auto';
+            coinElement.style.alignSelf = 'center';
+            
+            // Рассчитываем размеры с учетом масштаба
+            const scaledWidth = coinInfo.width * this.itemScale;
+            const scaledHeight = coinInfo.height * this.itemScale;
+            
+            // Применяем размеры
+            coinElement.style.width = `${scaledWidth}px`;
+            coinElement.style.height = `${scaledHeight}px`;
+            
+            // Стилизуем монету в зависимости от номинала
+            if (validDenomination === 100) { // $1
+                coinElement.style.backgroundColor = '#FFD700'; // Золотистый
+                coinElement.style.borderRadius = '5px'; // Прямоугольная форма с закругленными углами
+            } else {
+                coinElement.style.backgroundColor = this.getCoinColor(validDenomination);
+                coinElement.style.borderRadius = '50%'; // Круглая форма для монет
+            }
+            
+            coinElement.style.border = '1px solid #888';
+            coinElement.style.display = 'flex';
+            coinElement.style.justifyContent = 'center';
+            coinElement.style.alignItems = 'center';
+            coinElement.style.margin = '3px';
+            
+            // Если бы у нас были изображения, мы бы добавили их здесь
+            // coinElement.style.backgroundImage = `url(${coinInfo.src})`;
+            // coinElement.style.backgroundSize = 'cover';
+            
+            // Добавляем текстовую метку (для отладки, в реальном приложении можно убрать)
+            const label = document.createElement('span');
+            label.style.fontSize = `${Math.max(6, scaledWidth / 4)}px`;
+            label.style.color = this.getCoinTextColor(validDenomination);
+            label.style.fontWeight = 'bold';
+            
+            if (validDenomination === 100) {
+                label.textContent = '$1';
+            } else {
+                label.textContent = `${validDenomination}¢`;
+            }
+            
+            coinElement.appendChild(label);
+            
+            // Добавляем монету в контейнер
+            container.appendChild(coinElement);
+        }
+    }
+    
+    /**
+     * Возвращает цвет монеты в зависимости от номинала
+     * @param {number} value - Номинал монеты в центах
+     * @returns {string} - CSS цвет
+     */
+    getCoinColor(value) {
+        switch (value) {
+            case 1: return '#B87333';  // Медный (1 цент)
+            case 5: return '#A9A9A9';  // Серебристый (5 центов)
+            case 10: return '#A9A9A9'; // Серебристый (10 центов)
+            case 25: return '#C0C0C0'; // Серебристый (25 центов)
+            case 50: return '#C0C0C0'; // Серебристый (50 центов)
+            case 100: return '#FFD700'; // Золотистый (1 доллар)
+            default: return '#C0C0C0';
+        }
+    }
+    
+    /**
+     * Возвращает цвет текста на монете в зависимости от номинала
+     * @param {number} value - Номинал монеты в центах
+     * @returns {string} - CSS цвет
+     */
+    getCoinTextColor(value) {
+        switch (value) {
+            case 1: return '#FFFFFF';  // Белый текст на медной монете
+            default: return '#000000'; // Черный текст для остальных
+        }
     }
     
     /**

@@ -9,40 +9,50 @@
 </head>
 <body>
     <div class="game-container">
+        <!-- Верхняя панель с заголовком и кнопкой легенды -->
         <div class="game-header">
             <div class="game-title">
                 <h1>Coin Pairing Game</h1>
-                <div class="level-info">Level: <span id="current-level">1</span></div>
+                <div class="level-info">Level: <span id="current-level">1</span> - Task: <span id="current-task">1</span>/<span id="total-tasks">3</span></div>
             </div>
             <div class="legend-button-container">
                 <button id="show-legend" class="legend-button">Legend</button>
             </div>
         </div>
 
-        <div class="coin-piles-container">
-            <!-- Контейнеры для кучек монет (6 штук) -->
-            <div class="coin-pile" id="pile-1">
-                <div class="pile-content"></div>
+        <!-- Основная игровая область -->
+        <div class="main-game-area">
+            <!-- Контейнер для кучек монет -->
+            <div class="coin-piles-container">
+                <div class="coin-pile" id="pile-1">
+                    <div class="pile-content"></div>
+                </div>
+                <div class="coin-pile" id="pile-2">
+                    <div class="pile-content"></div>
+                </div>
+                <div class="coin-pile" id="pile-3">
+                    <div class="pile-content"></div>
+                </div>
+                <div class="coin-pile" id="pile-4">
+                    <div class="pile-content"></div>
+                </div>
+                <div class="coin-pile" id="pile-5">
+                    <div class="pile-content"></div>
+                </div>
+                <div class="coin-pile" id="pile-6">
+                    <div class="pile-content"></div>
+                </div>
             </div>
-            <div class="coin-pile" id="pile-2">
-                <div class="pile-content"></div>
-            </div>
-            <div class="coin-pile" id="pile-3">
-                <div class="pile-content"></div>
-            </div>
-            <div class="coin-pile" id="pile-4">
-                <div class="pile-content"></div>
-            </div>
-            <div class="coin-pile" id="pile-5">
-                <div class="pile-content"></div>
-            </div>
-            <div class="coin-pile" id="pile-6">
-                <div class="pile-content"></div>
-            </div>
+
+            <!-- Контейнер для соединений (SVG) -->
+            <svg class="connections-container" id="connections-layer" xmlns="http://www.w3.org/2000/svg"></svg>
         </div>
 
-        <!-- Контейнер для соединений (SVG) -->
-        <svg class="connections-container" id="connections-layer" xmlns="http://www.w3.org/2000/svg"></svg>
+        <!-- Панель с кнопками управления -->
+        <div class="game-controls">
+            <button id="check-btn" disabled>Check Answers</button>
+            <button id="reset-btn"><i class="fas fa-undo"></i></button>
+        </div>
 
         <!-- Выдвигающаяся панель для легенды -->
         <div class="legend-panel" id="legend-panel">
@@ -89,17 +99,9 @@
                 </div>
             </div>
         </div>
-
-        <!-- Игровые элементы управления -->
-        <div class="game-controls">
-            <button id="check-btn" disabled>Check Answers</button>
-            <button id="reset-btn"><i class="fas fa-undo"></i></button>
-        </div>
     </div>
 
     <!-- JavaScript файлы -->
-    <script src="js/coin.js"></script>
-    <script src="js/circle-packing.js"></script>
     <script src="js/game.js"></script>
 </body>
 </html> 

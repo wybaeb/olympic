@@ -12,11 +12,28 @@ class CoinPairingGame {
         // Текущий уровень игры
         this.level = 1;
         
+        // Текущее задание в рамках уровня
+        this.currentTask = 1;
+        
+        // Общее количество заданий на уровне
+        this.tasksPerLevel = 3;
+        
         // Базовые пары кучек (будут масштабироваться в зависимости от уровня)
         this.basePairs = [
-            { relativeAmount: 150, basePair: ["$1 и 50¢", "25¢"] },
-            { relativeAmount: 200, basePair: ["$1", "25¢"] },
-            { relativeAmount: 175, basePair: ["$1 и 25¢", "25¢"] }
+            // Уровень 1: Простые пары с небольшими суммами
+            { relativeAmount: 25, basePair: ["25¢", "5¢ + 10¢ + 10¢"] },
+            { relativeAmount: 50, basePair: ["50¢", "25¢ + 25¢"] },
+            { relativeAmount: 75, basePair: ["25¢ + 50¢", "25¢ + 25¢ + 25¢"] },
+            
+            // Уровень 2: Средние пары с использованием разных монет
+            { relativeAmount: 100, basePair: ["$1", "50¢ + 50¢"] },
+            { relativeAmount: 125, basePair: ["$1 + 25¢", "50¢ + 50¢ + 25¢"] },
+            { relativeAmount: 150, basePair: ["$1 + 50¢", "50¢ + 50¢ + 50¢"] },
+            
+            // Уровень 3: Сложные пары с большими суммами
+            { relativeAmount: 175, basePair: ["$1 + 50¢ + 25¢", "25¢ x 7"] },
+            { relativeAmount: 200, basePair: ["$1 x 2", "50¢ x 4"] },
+            { relativeAmount: 250, basePair: ["$1 x 2 + 50¢", "25¢ x 10"] }
         ];
         
         // Состояние соединений
@@ -66,12 +83,22 @@ class CoinPairingGame {
         this.legendButton = document.getElementById('show-legend');
         this.legendPanel = document.getElementById('legend-panel');
         
-        // Элемент отображения текущего уровня
+        // Элементы отображения уровня и заданий
         this.levelDisplay = document.getElementById('current-level');
+        this.taskDisplay = document.getElementById('current-task');
+        this.totalTasksDisplay = document.getElementById('total-tasks');
         
-        // Устанавливаем текущий уровень в отображении
+        // Устанавливаем текущий уровень и задание в отображении
         if (this.levelDisplay) {
             this.levelDisplay.textContent = this.level;
+        }
+        
+        if (this.taskDisplay) {
+            this.taskDisplay.textContent = this.currentTask;
+        }
+        
+        if (this.totalTasksDisplay) {
+            this.totalTasksDisplay.textContent = this.tasksPerLevel;
         }
         
         // Игровые кнопки
@@ -82,7 +109,7 @@ class CoinPairingGame {
         this.addEventListeners();
         
         // Запускаем первый уровень
-        this.startLevel(this.level);
+        this.startLevel(this.level, this.currentTask);
     }
     
     /**
@@ -241,86 +268,11 @@ class CoinPairingGame {
                 // Добавляем линию в SVG контейнер
                 this.connectionsLayer.appendChild(this.currentLine);
             });
-        });
-        
-        // Обработчик для движения мыши
-        document.addEventListener('mousemove', (e) => {
-            if (this.dragging && this.currentLine) {
-                // Обновляем размеры контейнера игры для корректных координат
-                const gameRect = gameContainer.getBoundingClientRect();
-                
-                // Обновляем координаты конца линии относительно SVG
-                const x = e.clientX - gameRect.left;
-                const y = e.clientY - gameRect.top;
-                
-                this.currentLine.setAttribute('x2', x);
-                this.currentLine.setAttribute('y2', y);
-            }
-        });
-        
-        // Обработчик для отпускания кнопки мыши
-        document.addEventListener('mouseup', (e) => {
-            if (this.dragging && this.currentLine && this.lineStart) {
-                console.log("Mouseup, checking target...");
-                
-                // Обновляем размеры контейнера игры для корректных координат
-                const gameRect = gameContainer.getBoundingClientRect();
-                
-                // Проверяем, над какой кучкой отпустили мышь
-                let targetPile = null;
-                
-                this.pileContainers.forEach(pile => {
-                    const rect = pile.getBoundingClientRect();
-                    if (e.clientX >= rect.left && e.clientX <= rect.right &&
-                        e.clientY >= rect.top && e.clientY <= rect.bottom) {
-                        // Убедимся, что это не та же самая кучка, с которой начали
-                        if (pile !== this.lineStart) {
-                            targetPile = pile;
-                            console.log("Found target pile:", pile.id);
-                        }
-                    }
-                });
-                
-                if (targetPile) {
-                    // Получаем координаты центра целевой кучки относительно SVG
-                    const rect = targetPile.getBoundingClientRect();
-                    const centerX = rect.left + rect.width / 2 - gameRect.left;
-                    const centerY = rect.top + rect.height / 2 - gameRect.top;
-                    
-                    // Обновляем конечную точку линии
-                    this.currentLine.setAttribute('x2', centerX);
-                    this.currentLine.setAttribute('y2', centerY);
-                    this.currentLine.setAttribute('data-end-pile', targetPile.id);
-                    
-                    // Сохраняем соединение (без проверки на правильность)
-                    this.connections.push({
-                        start: this.lineStart.id,
-                        end: targetPile.id,
-                        line: this.currentLine,
-                        startAmount: parseInt(this.lineStart.dataset.amount || '0'),
-                        endAmount: parseInt(targetPile.dataset.amount || '0')
-                    });
-                    
-                    // Проверяем, все ли кучки соединены
-                    this.checkIfAllPilesConnected();
-                } else {
-                    // Если отпустили не над кучкой, удаляем линию
-                    if (this.connectionsLayer.contains(this.currentLine)) {
-                        this.connectionsLayer.removeChild(this.currentLine);
-                    }
-                }
-                
-                // Сбрасываем состояние перетаскивания
-                this.dragging = false;
-                this.lineStart = null;
-                this.currentLine = null;
-            }
-        });
-        
-        // Добавляем обработчик для сенсорных устройств (touch)
-        this.pileContainers.forEach(pile => {
+            
+            // Добавляем обработчик для сенсорных устройств
             pile.addEventListener('touchstart', (e) => {
                 e.preventDefault();
+                console.log("Touchstart on pile:", pile.id);
                 
                 // Обновляем размеры контейнера игры для корректных координат
                 const gameRect = gameContainer.getBoundingClientRect();
@@ -328,14 +280,16 @@ class CoinPairingGame {
                 // Получаем координаты первого касания
                 const touch = e.touches[0];
                 
-                // Аналогично обработчику mousedown
+                // Начинаем рисовать линию
                 this.dragging = true;
                 this.lineStart = pile;
                 
+                // Получаем координаты центра кучки относительно SVG
                 const rect = pile.getBoundingClientRect();
                 const centerX = rect.left + rect.width / 2 - gameRect.left;
                 const centerY = rect.top + rect.height / 2 - gameRect.top;
                 
+                // Создаем новую линию
                 this.currentLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                 this.currentLine.setAttribute('x1', centerX);
                 this.currentLine.setAttribute('y1', centerY);
@@ -345,10 +299,28 @@ class CoinPairingGame {
                 this.currentLine.setAttribute('stroke-width', '4');
                 this.currentLine.setAttribute('data-start-pile', pile.id);
                 
+                // Добавляем линию в SVG контейнер
                 this.connectionsLayer.appendChild(this.currentLine);
             });
         });
         
+        // Обработчик для движения мыши
+        document.addEventListener('mousemove', (e) => {
+            if (this.dragging && this.currentLine) {
+                // Обновляем размеры контейнера игры для корректных координат
+                const gameRect = gameContainer.getBoundingClientRect();
+                
+                // Получаем координаты курсора
+                const mouseX = e.clientX - gameRect.left;
+                const mouseY = e.clientY - gameRect.top;
+                
+                // Обновляем конечную точку линии
+                this.currentLine.setAttribute('x2', mouseX);
+                this.currentLine.setAttribute('y2', mouseY);
+            }
+        });
+        
+        // Обработчик для сенсорного перемещения
         document.addEventListener('touchmove', (e) => {
             if (this.dragging && this.currentLine) {
                 e.preventDefault();
@@ -358,69 +330,176 @@ class CoinPairingGame {
                 
                 // Получаем координаты первого касания
                 const touch = e.touches[0];
-                const x = touch.clientX - gameRect.left;
-                const y = touch.clientY - gameRect.top;
+                const touchX = touch.clientX - gameRect.left;
+                const touchY = touch.clientY - gameRect.top;
                 
-                this.currentLine.setAttribute('x2', x);
-                this.currentLine.setAttribute('y2', y);
+                // Обновляем конечную точку линии
+                this.currentLine.setAttribute('x2', touchX);
+                this.currentLine.setAttribute('y2', touchY);
             }
         });
         
-        document.addEventListener('touchend', (e) => {
-            if (this.dragging && this.currentLine && this.lineStart) {
-                // Обновляем размеры контейнера игры для корректных координат
-                const gameRect = gameContainer.getBoundingClientRect();
+        // Обработчик для окончания перетаскивания
+        document.addEventListener('mouseup', (e) => {
+            if (!this.dragging || !this.currentLine) {
+                return;
+            }
+            
+            console.log("Mouse up - checking for connection");
+            
+            // Обновляем размеры контейнера игры для корректных координат
+            const gameRect = gameContainer.getBoundingClientRect();
+            
+            // Получаем координаты курсора
+            const mouseX = e.clientX;
+            const mouseY = e.clientY;
+            
+            // Проверяем, находится ли курсор над какой-либо кучкой
+            this.pileContainers.forEach(pile => {
+                const rect = pile.getBoundingClientRect();
                 
-                // Завершение касания
-                // Логика аналогична mouseup, но нужно определить последнюю позицию касания
-                const touch = e.changedTouches[0];
-                
-                let targetPile = null;
-                this.pileContainers.forEach(pile => {
-                    const rect = pile.getBoundingClientRect();
-                    if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
-                        touch.clientY >= rect.top && touch.clientY <= rect.bottom &&
-                        pile !== this.lineStart) {
-                        targetPile = pile;
-                    }
-                });
-                
-                // Дальнейшая обработка аналогична mouseup
-                if (targetPile) {
-                    const rect = targetPile.getBoundingClientRect();
-                    const centerX = rect.left + rect.width / 2 - gameRect.left;
-                    const centerY = rect.top + rect.height / 2 - gameRect.top;
+                // Если курсор над кучкой и это не та же самая кучка, откуда началось перетаскивание
+                if (
+                    pile !== this.lineStart &&
+                    mouseX >= rect.left && 
+                    mouseX <= rect.right && 
+                    mouseY >= rect.top && 
+                    mouseY <= rect.bottom
+                ) {
+                    // Обрабатываем успешное соединение
+                    console.log(`Connected ${this.lineStart.id} to ${pile.id}`);
                     
-                    this.currentLine.setAttribute('x2', centerX);
-                    this.currentLine.setAttribute('y2', centerY);
-                    this.currentLine.setAttribute('data-end-pile', targetPile.id);
+                    // Подстраиваем линию к центрам кучек
+                    const startRect = this.lineStart.getBoundingClientRect();
+                    const endRect = pile.getBoundingClientRect();
                     
-                    // Сохраняем соединение (без проверки на правильность)
+                    const startX = startRect.left + startRect.width / 2 - gameRect.left;
+                    const startY = startRect.top + startRect.height / 2 - gameRect.top;
+                    const endX = endRect.left + endRect.width / 2 - gameRect.left;
+                    const endY = endRect.top + endRect.height / 2 - gameRect.top;
+                    
+                    this.currentLine.setAttribute('x1', startX);
+                    this.currentLine.setAttribute('y1', startY);
+                    this.currentLine.setAttribute('x2', endX);
+                    this.currentLine.setAttribute('y2', endY);
+                    
+                    // Добавляем соединение в массив
                     this.connections.push({
                         start: this.lineStart.id,
-                        end: targetPile.id,
-                        line: this.currentLine,
-                        startAmount: parseInt(this.lineStart.dataset.amount || '0'),
-                        endAmount: parseInt(targetPile.dataset.amount || '0')
+                        end: pile.id,
+                        line: this.currentLine
                     });
                     
+                    // Сохраняем линию и проверяем, все ли кучки соединены
+                    this.currentLine = null;
+                    
                     // Проверяем, все ли кучки соединены
-                    this.checkIfAllPilesConnected();
-                } else {
-                    if (this.connectionsLayer.contains(this.currentLine)) {
-                        this.connectionsLayer.removeChild(this.currentLine);
+                    const allConnected = this.checkIfAllPilesConnected();
+                    if (allConnected && this.checkButton) {
+                        // Активируем кнопку проверки
+                        this.checkButton.disabled = false;
+                        // Добавляем анимацию пульсации
+                        this.checkButton.classList.add('pulse-animation');
                     }
+                    
+                    return;
                 }
-                
-                this.dragging = false;
-                this.lineStart = null;
-                this.currentLine = null;
+            });
+            
+            // Если соединение не было создано, удаляем текущую линию
+            if (this.currentLine && this.currentLine.parentNode) {
+                this.currentLine.parentNode.removeChild(this.currentLine);
             }
+            
+            // Сбрасываем состояние перетаскивания
+            this.dragging = false;
+            this.lineStart = null;
+            this.currentLine = null;
+        });
+        
+        // Обработчик окончания касания для сенсорных устройств
+        document.addEventListener('touchend', (e) => {
+            if (!this.dragging || !this.currentLine) {
+                return;
+            }
+            
+            console.log("Touch end - checking for connection");
+            
+            // Обновляем размеры контейнера игры для корректных координат
+            const gameRect = gameContainer.getBoundingClientRect();
+            
+            // Получаем координаты последнего касания
+            const touch = e.changedTouches[0];
+            const touchX = touch.clientX;
+            const touchY = touch.clientY;
+            
+            // Проверяем, находится ли касание над какой-либо кучкой
+            this.pileContainers.forEach(pile => {
+                const rect = pile.getBoundingClientRect();
+                
+                // Если касание над кучкой и это не та же самая кучка, откуда началось перетаскивание
+                if (
+                    pile !== this.lineStart &&
+                    touchX >= rect.left && 
+                    touchX <= rect.right && 
+                    touchY >= rect.top && 
+                    touchY <= rect.bottom
+                ) {
+                    // Обрабатываем успешное соединение
+                    console.log(`Touch connected ${this.lineStart.id} to ${pile.id}`);
+                    
+                    // Подстраиваем линию к центрам кучек
+                    const startRect = this.lineStart.getBoundingClientRect();
+                    const endRect = pile.getBoundingClientRect();
+                    
+                    const startX = startRect.left + startRect.width / 2 - gameRect.left;
+                    const startY = startRect.top + startRect.height / 2 - gameRect.top;
+                    const endX = endRect.left + endRect.width / 2 - gameRect.left;
+                    const endY = endRect.top + endRect.height / 2 - gameRect.top;
+                    
+                    this.currentLine.setAttribute('x1', startX);
+                    this.currentLine.setAttribute('y1', startY);
+                    this.currentLine.setAttribute('x2', endX);
+                    this.currentLine.setAttribute('y2', endY);
+                    
+                    // Добавляем соединение в массив
+                    this.connections.push({
+                        start: this.lineStart.id,
+                        end: pile.id,
+                        line: this.currentLine
+                    });
+                    
+                    // Сохраняем линию и проверяем, все ли кучки соединены
+                    this.currentLine = null;
+                    
+                    // Проверяем, все ли кучки соединены
+                    const allConnected = this.checkIfAllPilesConnected();
+                    if (allConnected && this.checkButton) {
+                        // Активируем кнопку проверки
+                        this.checkButton.disabled = false;
+                        // Добавляем анимацию пульсации
+                        this.checkButton.classList.add('pulse-animation');
+                    }
+                    
+                    return;
+                }
+            });
+            
+            // Если соединение не было создано, удаляем текущую линию
+            if (this.currentLine && this.currentLine.parentNode) {
+                this.currentLine.parentNode.removeChild(this.currentLine);
+            }
+            
+            // Сбрасываем состояние перетаскивания
+            this.dragging = false;
+            this.lineStart = null;
+            this.currentLine = null;
         });
     }
     
     /**
      * Проверяет, все ли кучки соединены
+     * @returns {boolean} - true, если все кучки соединены в пары
      */
     checkIfAllPilesConnected() {
         // Получаем количество уникальных кучек в соединениях
@@ -430,67 +509,141 @@ class CoinPairingGame {
             connectedPiles.add(connection.end);
         }
         
-        // Если все 6 кучек соединены (3 пары), активируем кнопку проверки
-        if (connectedPiles.size === 6) {
-            // Активируем кнопку проверки
-            if (this.checkButton) {
+        // Проверяем, что каждая кучка соединена только с одной другой
+        const pileConnectionCount = {};
+        for (const connection of this.connections) {
+            pileConnectionCount[connection.start] = (pileConnectionCount[connection.start] || 0) + 1;
+            pileConnectionCount[connection.end] = (pileConnectionCount[connection.end] || 0) + 1;
+        }
+        
+        // Проверяем, что каждая кучка соединена ровно с одной другой
+        const allProperlyCoupled = Object.values(pileConnectionCount).every(count => count === 1);
+        
+        // Если все 6 кучек соединены в пары (по одной связи на кучку)
+        const allConnected = connectedPiles.size === 6 && allProperlyCoupled;
+        
+        // Обновляем состояние кнопки проверки
+        if (this.checkButton) {
+            if (allConnected) {
                 this.checkButton.disabled = false;
                 this.checkButton.classList.add('pulse-animation');
-            }
-        } else {
-            // Деактивируем кнопку если соединений недостаточно
-            if (this.checkButton) {
+            } else {
                 this.checkButton.disabled = true;
                 this.checkButton.classList.remove('pulse-animation');
             }
         }
+        
+        return allConnected;
     }
     
     /**
-     * Создает новый уровень с заданиями
+     * Запускает указанный уровень
      * @param {number} level - Номер уровня
+     * @param {number} task - Номер задания в рамках уровня
      */
-    startLevel(level) {
-        console.log(`Starting level ${level}...`);
+    startLevel(level, task = 1) {
+        console.log(`Starting level ${level}, task ${task}...`);
         
-        // Генерируем данные для текущего уровня
-        const levelData = this.generateLevelData(level);
+        // Обновляем текущий уровень и задание
+        this.level = level;
+        this.currentTask = task;
         
-        // Отображаем кучки на экране
-        this.renderPiles(levelData);
+        // Обновляем отображение уровня и задания
+        if (this.levelDisplay) {
+            this.levelDisplay.textContent = this.level;
+        }
+        
+        if (this.taskDisplay) {
+            this.taskDisplay.textContent = this.currentTask;
+        }
         
         // Сбрасываем все соединения
         this.resetConnections();
+        
+        // Генерируем данные для текущего уровня и задания
+        const levelData = this.generateLevelData(level, task);
+        
+        // Отображаем кучки
+        this.renderPiles(levelData);
     }
     
     /**
-     * Генерирует данные для уровня с учетом формулы масштабирования
+     * Генерирует данные для указанного уровня и задания
      * @param {number} level - Номер уровня
-     * @returns {Array} - Данные для уровня
+     * @param {number} task - Номер задания в рамках уровня
+     * @returns {Object} Данные для уровня
      */
-    generateLevelData(level) {
-        // Количество монет для текущего уровня по формуле number = 5 + level * 5
-        const coinsPerPile = 5 + level * 5;
-        console.log(`Generating level ${level} with ${coinsPerPile} coins per pile`);
+    generateLevelData(level, task = 1) {
+        console.log(`Generating data for level ${level}, task ${task}...`);
         
-        // Генерируем пары кучек для уровня
-        const levelData = [];
+        // Определяем, какие базовые пары использовать в зависимости от уровня
+        let levelPairs = [];
         
-        for (const basePair of this.basePairs) {
-            // Масштабируем сумму в зависимости от уровня
-            const amount = basePair.relativeAmount + (level - 1) * 50;
-            
-            // Создаем пары монет, масштабируя количество
-            const pile1Composition = this.generateComposition(basePair.basePair[0], amount, coinsPerPile);
-            const pile2Composition = this.generateComposition(basePair.basePair[1], amount, coinsPerPile);
-            
-            levelData.push({
-                amount: amount,
-                pair: [pile1Composition, pile2Composition]
-            });
+        if (level === 1) {
+            // Используем первые 3 пары (простые)
+            levelPairs = this.basePairs.slice(0, 3);
+        } else if (level === 2) {
+            // Используем средние 3 пары
+            levelPairs = this.basePairs.slice(3, 6);
+        } else {
+            // Используем последние 3 пары (сложные)
+            levelPairs = this.basePairs.slice(6, 9);
         }
         
-        return levelData;
+        // Выбираем пару на основе текущего задания (1, 2, 3)
+        const pairIndex = (task - 1) % levelPairs.length;
+        const basePairData = levelPairs[pairIndex];
+        
+        // Количество монет увеличивается с уровнем
+        const coinsPerPile = 5 + level * 3;
+        console.log(`Generating level ${level}, task ${task} with ${coinsPerPile} coins per pile`);
+        
+        // Создаем пары монет
+        const pair1Amount = basePairData.relativeAmount;
+        const pair2Amount = Math.floor(pair1Amount * 1.4); // 40% больше, минимум отличие 10¢
+        const pair3Amount = Math.floor(pair1Amount * 0.6); // 40% меньше, но не менее 10¢
+        
+        // Убеждаемся, что суммы отличаются минимум на 5¢
+        const ensureUniqueSums = () => {
+            if (pair2Amount - pair1Amount < 5) {
+                return Math.max(pair1Amount + 5, pair2Amount);
+            }
+            return pair2Amount;
+        };
+        
+        const ensureMinSum = (amount) => {
+            return Math.max(10, amount); // Минимальная сумма 10¢
+        };
+        
+        const validPair2Amount = ensureUniqueSums();
+        const validPair3Amount = ensureMinSum(pair3Amount);
+        
+        // Создаем 3 пары с разными суммами
+        const pairs = [
+            {
+                amount: pair1Amount,
+                compositions: [
+                    this.generateComposition(basePairData.basePair[0], pair1Amount, coinsPerPile),
+                    this.generateComposition(basePairData.basePair[1], pair1Amount, coinsPerPile)
+                ]
+            },
+            {
+                amount: validPair2Amount,
+                compositions: [
+                    this.generateComposition("$1", validPair2Amount, coinsPerPile),
+                    this.generateComposition("25¢", validPair2Amount, coinsPerPile)
+                ]
+            },
+            {
+                amount: validPair3Amount,
+                compositions: [
+                    this.generateComposition("10¢", validPair3Amount, coinsPerPile),
+                    this.generateComposition("5¢", validPair3Amount, coinsPerPile)
+                ]
+            }
+        ];
+        
+        return { pairs };
     }
     
     /**
@@ -646,37 +799,41 @@ class CoinPairingGame {
     
     /**
      * Отображает кучки на экране
-     * @param {Array} levelData - Данные для уровня
+     * @param {Object} levelData - Данные для уровня и задания
      */
     renderPiles(levelData) {
         console.log("Rendering piles...");
         
-        // Массив для всех кучек 
+        // Массив для всех кучек
         const allPiles = [];
         
-        // Обрабатываем каждую пару
-        for (let i = 0; i < levelData.length; i++) {
-            const pairData = levelData[i];
-            
-            // Создаем две кучки для пары
+        // Создаем кучки из пар с одинаковой суммой
+        levelData.pairs.forEach((pair, index) => {
+            // Первая кучка пары
             allPiles.push({
-                id: i * 2,
-                amount: pairData.amount,
-                composition: pairData.pair[0]
+                id: `pile-${allPiles.length + 1}`,
+                amount: pair.amount,
+                composition: pair.compositions[0],
+                pairIndex: index  // Сохраняем индекс пары для проверки
             });
             
+            // Вторая кучка пары
             allPiles.push({
-                id: i * 2 + 1,
-                amount: pairData.amount,
-                composition: pairData.pair[1]
+                id: `pile-${allPiles.length + 1}`,
+                amount: pair.amount,
+                composition: pair.compositions[1],
+                pairIndex: index  // Тот же индекс пары
             });
-        }
+        });
         
-        // Перемешиваем кучки
+        // Перемешиваем кучки для случайного расположения
         for (let i = allPiles.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [allPiles[i], allPiles[j]] = [allPiles[j], allPiles[i]];
         }
+        
+        // Сохраняем информацию о кучках
+        this.piles = allPiles;
         
         // Рендерим каждую кучку
         for (let i = 0; i < Math.min(allPiles.length, this.pileContainers.length); i++) {
@@ -715,8 +872,9 @@ class CoinPairingGame {
                 container.appendChild(coinsElement);
                 
                 // Сохраняем данные в атрибуте
-                this.pileContainers[i].dataset.pileId = pile.id;
+                this.pileContainers[i].dataset.pileId = this.pileContainers[i].id;
                 this.pileContainers[i].dataset.amount = pile.amount;
+                this.pileContainers[i].dataset.pairIndex = pile.pairIndex; // Сохраняем индекс пары
             }
         }
         
@@ -871,7 +1029,7 @@ class CoinPairingGame {
     }
     
     /**
-     * Проверяет правильность соединений
+     * Проверяет ответы игрока
      */
     checkAnswers() {
         // Проверяем все соединения
@@ -891,48 +1049,68 @@ class CoinPairingGame {
         
         // Перебираем все соединения и проверяем их
         for (const connection of this.connections) {
-            // Проверяем, совпадают ли суммы
-            if (connection.startAmount === connection.endAmount) {
-                // Правильное соединение - меняем цвет на зеленый
-                connection.line.setAttribute('stroke', '#4CAF50');
-                connection.line.setAttribute('stroke-width', '5');
-                correctCount++;
-            } else {
-                // Неправильное соединение - меняем цвет на красный
-                connection.line.setAttribute('stroke', '#F44336');
-                connection.line.setAttribute('stroke-width', '3');
-                allCorrect = false;
+            const startPile = document.getElementById(connection.start);
+            const endPile = document.getElementById(connection.end);
+            
+            if (startPile && endPile) {
+                // Проверяем, что соединены кучи из одной пары (одинаковые суммы)
+                if (startPile.dataset.amount === endPile.dataset.amount) {
+                    // Правильное соединение - меняем цвет на зеленый
+                    connection.line.setAttribute('stroke', '#4CAF50');
+                    connection.line.setAttribute('stroke-width', '5');
+                    correctCount++;
+                } else {
+                    // Неправильное соединение - меняем цвет на красный
+                    connection.line.setAttribute('stroke', '#F44336');
+                    connection.line.setAttribute('stroke-width', '3');
+                    allCorrect = false;
+                }
             }
         }
         
         // Показываем временное уведомление и автоматически переходим к следующему шагу
         if (allCorrect) {
-            // Создаем временное уведомление
-            this.showTemporaryMessage(`Отлично! Вы нашли все ${correctCount} пар.`, 'success');
+            // Проверяем, завершена ли игра (последнее задание последнего уровня)
+            if (this.currentTask === this.tasksPerLevel && this.level >= 3) {
+                // Если это последнее задание последнего уровня, показываем сообщение о завершении игры
+                this.showTemporaryMessage('Поздравляем! Вы прошли все задания!', 'success', 3000);
+            } else {
+                // Создаем временное уведомление о выполнении текущего задания
+                this.showTemporaryMessage(`Отлично! Задание ${this.currentTask} выполнено!`, 'success');
+            }
             
-            // Ждем немного и переходим на следующий уровень
+            // Переходим к следующему заданию или уровню
             setTimeout(() => {
-                if (this.level < 3) {  // Максимум 3 уровня
-                    this.level++;
-                    this.startLevel(this.level);
-                    
-                    // Обновляем отображение уровня
-                    if (this.levelDisplay) {
-                        this.levelDisplay.textContent = this.level;
-                    }
+                // Если игра завершена, не переходим к следующему заданию
+                if (this.currentTask === this.tasksPerLevel && this.level >= 3) {
+                    // Можно добавить дополнительные действия при завершении игры
+                    console.log("Игра завершена!");
                 } else {
-                    // Если это был последний уровень, показываем сообщение о завершении игры
-                    this.showTemporaryMessage('Поздравляем! Вы прошли все уровни!', 'success', 3000);
+                    this.progressToNextTask();
                 }
             }, 1500);
         } else {
             // Показываем сообщение об ошибке
-            this.showTemporaryMessage(`Найдено только ${correctCount} правильных пар из 3. Попробуйте снова.`, 'error');
+            this.showTemporaryMessage(`Правильных пар: ${correctCount} из ${this.connections.length}. Попробуйте снова.`, 'error');
             
             // Ждем немного и сбрасываем уровень
             setTimeout(() => {
-                this.startLevel(this.level);
+                this.startLevel(this.level, this.currentTask);
             }, 1500);
+        }
+    }
+    
+    /**
+     * Переходит к следующему заданию или уровню
+     */
+    progressToNextTask() {
+        // Проверяем, есть ли ещё задания на текущем уровне
+        if (this.currentTask < this.tasksPerLevel) {
+            // Переходим к следующему заданию текущего уровня
+            this.startLevel(this.level, this.currentTask + 1);
+        } else {
+            // Переходим к первому заданию следующего уровня
+            this.startLevel(this.level + 1, 1);
         }
     }
     

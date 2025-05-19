@@ -328,31 +328,35 @@ body {
     justify-content: center;
     align-items: center;
     margin: 4px;
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 /* Удаляем фоновые изображения из CSS, так как теперь используются img элементы */
 .coin-1 {
-    /* Стили без фонового изображения */
+    background-color: #B87333;
 }
 
 .coin-5 {
-    /* Стили без фонового изображения */
+    background-color: #A9A9A9;
 }
 
 .coin-10 {
-    /* Стили без фонового изображения */
+    background-color: #A9A9A9;
 }
 
 .coin-25 {
-    /* Стили без фонового изображения */
+    background-color: #C0C0C0;
 }
 
 .coin-50 {
-    /* Стили без фонового изображения */
+    background-color: #C0C0C0;
 }
 
 .coin-100 {
-    /* Стили без фонового изображения */
+    border-radius: 5px;
+    background-color: transparent;
 }
 
 /* Стили для соединительной линии при перетаскивании */

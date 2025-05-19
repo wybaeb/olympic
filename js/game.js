@@ -38,7 +38,7 @@ class CoinPairingGame {
         };
         
         // Множитель масштабирования
-        this.itemScale = 0.3;
+        this.itemScale = 0.4;
         
         // Допустимые номиналы
         this.allowedDenominations = [1, 5, 10, 25, 50, 100];
@@ -592,13 +592,13 @@ class CoinPairingGame {
             coinElement.style.width = `${scaledWidth}px`;
             coinElement.style.height = `${scaledHeight}px`;
             
-            // Стилизуем монету в зависимости от номинала
+            // Добавляем фон и рамку в зависимости от номинала
             if (validDenomination === 100) { // $1
-                coinElement.style.borderRadius = '5px'; // Прямоугольная форма с закругленными углами
+                // Не устанавливаем borderRadius - он будет из CSS
                 // Не добавляем border для доллара
             } else {
                 coinElement.style.backgroundColor = this.getCoinColor(validDenomination);
-                coinElement.style.borderRadius = '50%'; // Круглая форма для монет
+                // Не устанавливаем borderRadius - он будет из CSS
                 coinElement.style.border = '1px solid #888';
             }
             

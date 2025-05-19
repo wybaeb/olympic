@@ -562,8 +562,8 @@ class CoinPairingGame {
         // 1. Базовая сумма: увеличивается с уровнем (по формуле 25 * уровень)
         const baseAmount = 25 * level;
         
-        // 2. Минимальное количество монет: увеличивается с уровнем (по формуле 5 + уровень * 2)
-        const minCoins = 5 + level * 2;
+        // 2. Минимальное количество монет: увеличивается с уровнем (по формуле 3 + уровень * 2)
+        const minCoins = 3 + level * 2;
         
         console.log(`Level ${level}, task ${task}: base amount ${baseAmount}, min coins ${minCoins}`);
         

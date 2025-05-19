@@ -579,15 +579,21 @@ class CoinPairingGame {
         // Определяем, какие базовые пары использовать в зависимости от уровня
         let levelPairs = [];
         
-        if (level === 1) {
-            // Используем первые 3 пары (простые)
-            levelPairs = this.basePairs.slice(0, 3);
-        } else if (level === 2) {
-            // Используем средние 3 пары
-            levelPairs = this.basePairs.slice(3, 6);
+        // Для уровней выше 3, используем последние 3 пары, но с увеличенной сложностью
+        if (level <= 3) {
+            // Выбираем соответствующий набор базовых пар
+            const startIdx = (level - 1) * 3;
+            levelPairs = this.basePairs.slice(startIdx, startIdx + 3);
         } else {
-            // Используем последние 3 пары (сложные)
-            levelPairs = this.basePairs.slice(6, 9);
+            // Для уровней выше 3 используем последний набор пар, но увеличиваем суммы
+            levelPairs = this.basePairs.slice(6, 9).map(pair => {
+                // Увеличиваем сумму пропорционально уровню 
+                const multiplier = 1 + (level - 3) * 0.5; // +50% за каждый уровень выше 3
+                return {
+                    relativeAmount: Math.floor(pair.relativeAmount * multiplier),
+                    basePair: pair.basePair
+                };
+            });
         }
         
         // Выбираем пару на основе текущего задания (1, 2, 3)
@@ -1070,24 +1076,12 @@ class CoinPairingGame {
         
         // Показываем временное уведомление и автоматически переходим к следующему шагу
         if (allCorrect) {
-            // Проверяем, завершена ли игра (последнее задание последнего уровня)
-            if (this.currentTask === this.tasksPerLevel && this.level >= 3) {
-                // Если это последнее задание последнего уровня, показываем сообщение о завершении игры
-                this.showTemporaryMessage('Поздравляем! Вы прошли все задания!', 'success', 3000);
-            } else {
-                // Создаем временное уведомление о выполнении текущего задания
-                this.showTemporaryMessage(`Отлично! Задание ${this.currentTask} выполнено!`, 'success');
-            }
+            // Создаем временное уведомление о выполнении текущего задания
+            this.showTemporaryMessage(`Отлично! Задание ${this.currentTask} выполнено!`, 'success');
             
             // Переходим к следующему заданию или уровню
             setTimeout(() => {
-                // Если игра завершена, не переходим к следующему заданию
-                if (this.currentTask === this.tasksPerLevel && this.level >= 3) {
-                    // Можно добавить дополнительные действия при завершении игры
-                    console.log("Игра завершена!");
-                } else {
-                    this.progressToNextTask();
-                }
+                this.progressToNextTask();
             }, 1500);
         } else {
             // Показываем сообщение об ошибке

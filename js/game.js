@@ -15,6 +15,9 @@ class CoinPairingGame {
         // Текущее задание в рамках уровня
         this.currentTask = 1;
         
+        // Проверяем URL на наличие хеша для перехода на конкретный уровень
+        this.checkUrlHash();
+        
         // Общее количество заданий на уровне
         this.tasksPerLevel = 3;
         
@@ -47,6 +50,75 @@ class CoinPairingGame {
         
         // Адаптация к высоте экрана (iPad и мобильные устройства)
         this.adjustForMobileViewport();
+        
+        // Добавляем обработчик хеша URL
+        window.addEventListener('hashchange', () => this.checkUrlHash());
+    }
+    
+    /**
+     * Проверяет хеш в URL и переходит на соответствующий уровень
+     */
+    checkUrlHash() {
+        const hash = window.location.hash.substring(1);
+        if (hash) {
+            // Пытаемся декодировать хеш
+            const levelInfo = this.decodeLevelHash(hash);
+            if (levelInfo) {
+                this.level = levelInfo.level;
+                this.currentTask = levelInfo.task || 1;
+                // Если элементы уже инициализированы
+                if (this.pileContainers) {
+                    // Запускаем указанный уровень
+                    this.startLevel(this.level, this.currentTask);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Декодирует хеш URL в информацию о уровне
+     * @param {string} hash - Хеш из URL
+     * @returns {Object|null} - Объект с информацией о уровне или null
+     */
+    decodeLevelHash(hash) {
+        try {
+            // Простое декодирование Base64
+            const decoded = atob(hash);
+            // Формат: level-task
+            const parts = decoded.split('-');
+            const level = parseInt(parts[0]);
+            const task = parts.length > 1 ? parseInt(parts[1]) : 1;
+            
+            // Проверка валидности данных
+            if (!isNaN(level) && level > 0 && !isNaN(task) && task > 0) {
+                return { level, task };
+            }
+        } catch (e) {
+            console.error('Error decoding hash:', e);
+        }
+        return null;
+    }
+    
+    /**
+     * Кодирует информацию об уровне в хеш для URL
+     * @param {number} level - Номер уровня
+     * @param {number} task - Номер задания
+     * @returns {string} - Закодированный хеш
+     */
+    encodeLevelHash(level, task = 1) {
+        // Формируем строку с инфо
+        const levelInfo = `${level}-${task}`;
+        // Кодируем в Base64
+        return btoa(levelInfo);
+    }
+    
+    /**
+     * Обновляет URL с хешем для текущего уровня
+     */
+    updateUrlHash() {
+        const hash = this.encodeLevelHash(this.level, this.currentTask);
+        // Обновляем хеш URL без перезагрузки страницы
+        window.location.hash = hash;
     }
     
     /**
@@ -227,6 +299,14 @@ class CoinPairingGame {
         if (closeButton) {
             closeButton.addEventListener('click', () => {
                 this.legendPanel.classList.remove('visible');
+            });
+        }
+        
+        // Обработчик для кнопки копирования ссылки
+        const shareButton = document.getElementById('share-link');
+        if (shareButton) {
+            shareButton.addEventListener('click', () => {
+                this.shareCurrentLevelLink();
             });
         }
         
@@ -572,6 +652,9 @@ class CoinPairingGame {
         
         // Отображаем кучки
         this.renderPiles(levelData);
+        
+        // Обновляем хеш URL
+        this.updateUrlHash();
     }
     
     /**
@@ -1296,6 +1379,32 @@ class CoinPairingGame {
             this.checkButton.disabled = true;
             this.checkButton.classList.remove('pulse-animation');
         }
+    }
+    
+    /**
+     * Копирует в буфер обмена ссылку на текущий уровень
+     */
+    shareCurrentLevelLink() {
+        const url = new URL(window.location.href);
+        url.hash = this.encodeLevelHash(this.level, this.currentTask);
+        
+        // Копируем ссылку в буфер обмена
+        navigator.clipboard.writeText(url.href)
+            .then(() => {
+                // Показываем уведомление об успешном копировании
+                const toast = document.getElementById('share-toast');
+                if (toast) {
+                    toast.classList.add('show');
+                    setTimeout(() => {
+                        toast.classList.remove('show');
+                    }, 2000);
+                }
+            })
+            .catch(err => {
+                console.error('Не удалось скопировать ссылку: ', err);
+                // Показываем уведомление об ошибке
+                this.showTemporaryMessage('Failed to copy link', 'error');
+            });
     }
 }
 

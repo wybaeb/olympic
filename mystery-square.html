@@ -386,19 +386,26 @@
             <div class="control-group">
                 <label for="size-select">Размер квадрата:</label>
                 <select id="size-select">
+                    <option value="auto" selected>Авто</option>
                     <option value="3">3×3</option>
                     <option value="4">4×4</option>
-                    <option value="5" selected>5×5</option>
+                    <option value="5">5×5</option>
                     <option value="6">6×6</option>
                 </select>
             </div>
             <div class="control-group">
-                <label for="range-input">Диапазон чисел:</label>
-                <input type="number" id="range-input" min="1" max="20" value="10">
+                <label for="range-select">Диапазон чисел:</label>
+                <select id="range-select">
+                    <option value="auto" selected>Авто</option>
+                    <!-- Опции будут добавлены динамически -->
+                </select>
             </div>
             <div class="control-group">
-                <label for="hidden-input">Скрытых ячеек:</label>
-                <input type="number" id="hidden-input" min="1" max="8" value="4">
+                <label for="hidden-select">Скрытых ячеек:</label>
+                <select id="hidden-select">
+                    <option value="auto" selected>Авто</option>
+                    <!-- Опции будут добавлены динамически -->
+                </select>
             </div>
         </div>
         
@@ -455,6 +462,11 @@
         let numberRange = 10;
         let hiddenCount = 4;
         
+        // Пользовательские настройки (null = авто режим)
+        let userGridSize = null;
+        let userNumberRange = null;
+        let userHiddenCount = null;
+        
         // Загружаем сохраненный прогресс
         function loadGameState() {
             const hash = window.location.hash.substring(1);
@@ -484,21 +496,93 @@
         function updateLevelParameters() {
             const L = currentLevel;
             
-            // R = 1 + round(L/2) + round(random()*L)
-            numberRange = 1 + Math.round(L/2) + Math.round(Math.random() * L);
+            // Вычисляем автоматические значения
+            const autoNumberRange = 1 + Math.round(L/2) + Math.round(Math.random() * L);
+            const autoGridSize = Math.min(6, 2 + Math.max(1, Math.ceil(L/2)));
             
-            // H = 2 + max(1, roundup(L/2))
-            gridSize = 2 + Math.max(1, Math.ceil(L/2));
-            gridSize = Math.min(gridSize, 6); // Ограничиваем максимальный размер
+            // Применяем значения (авто или пользовательские)
+            numberRange = userNumberRange !== null ? userNumberRange : autoNumberRange;
+            gridSize = userGridSize !== null ? userGridSize : autoGridSize;
             
-            // S = min((H-1)*2, H + round(L/2)-1)
-            hiddenCount = Math.min((gridSize-1)*2, gridSize + Math.round(L/2) - 1);
+            // Вычисляем autoHiddenCount на основе фактического gridSize
+            const autoHiddenCount = Math.min((gridSize-1)*2, gridSize + Math.round(L/2) - 1);
+            hiddenCount = userHiddenCount !== null ? userHiddenCount : autoHiddenCount;
             
             // Обновляем элементы управления
-            document.getElementById('size-select').value = gridSize;
-            document.getElementById('range-input').value = numberRange;
-            document.getElementById('hidden-input').value = hiddenCount;
-            document.getElementById('hidden-input').max = (gridSize-1)*2;
+            updateDropdownOptions();
+            updateDropdownValues();
+        }
+        
+        // Обновляем опции в выпадающих списках
+        function updateDropdownOptions() {
+            const L = currentLevel;
+            
+            // Обновляем опции диапазона чисел
+            const rangeSelect = document.getElementById('range-select');
+            const currentRangeValue = rangeSelect.value;
+            rangeSelect.innerHTML = '<option value="auto">Авто</option>';
+            
+            const minRange = 1 + Math.round(L/2);
+            const maxRange = Math.round(1 + L/2 + L);
+            for (let i = minRange; i <= maxRange; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i;
+                rangeSelect.appendChild(option);
+            }
+            
+            // Восстанавливаем выбранное значение если возможно
+            if (currentRangeValue !== 'auto' && parseInt(currentRangeValue) >= minRange && parseInt(currentRangeValue) <= maxRange) {
+                rangeSelect.value = currentRangeValue;
+            } else if (currentRangeValue !== 'auto') {
+                rangeSelect.value = 'auto';
+                userNumberRange = null;
+            }
+            
+            // Обновляем опции скрытых ячеек
+            const hiddenSelect = document.getElementById('hidden-select');
+            const currentHiddenValue = hiddenSelect.value;
+            hiddenSelect.innerHTML = '<option value="auto">Авто</option>';
+            
+            const maxHidden = (gridSize-1)*2;
+            for (let i = 1; i <= maxHidden; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i;
+                hiddenSelect.appendChild(option);
+            }
+            
+            // Восстанавливаем выбранное значение если возможно
+            if (currentHiddenValue !== 'auto' && parseInt(currentHiddenValue) >= 1 && parseInt(currentHiddenValue) <= maxHidden) {
+                hiddenSelect.value = currentHiddenValue;
+            } else if (currentHiddenValue !== 'auto') {
+                hiddenSelect.value = 'auto';
+                userHiddenCount = null;
+            }
+        }
+        
+        // Обновляем значения в выпадающих списках
+        function updateDropdownValues() {
+            // Размер сетки
+            if (userGridSize !== null) {
+                document.getElementById('size-select').value = userGridSize;
+            } else {
+                document.getElementById('size-select').value = 'auto';
+            }
+            
+            // Диапазон чисел
+            if (userNumberRange !== null) {
+                document.getElementById('range-select').value = userNumberRange;
+            } else {
+                document.getElementById('range-select').value = 'auto';
+            }
+            
+            // Скрытые ячейки
+            if (userHiddenCount !== null) {
+                document.getElementById('hidden-select').value = userHiddenCount;
+            } else {
+                document.getElementById('hidden-select').value = 'auto';
+            }
         }
         
         // Обновляем индикаторы прогресса
@@ -522,9 +606,28 @@
         // Генерируем новую игру
         function generateGame() {
             // Читаем текущие настройки из элементов управления
-            gridSize = parseInt(document.getElementById('size-select').value);
-            numberRange = parseInt(document.getElementById('range-input').value);
-            hiddenCount = parseInt(document.getElementById('hidden-input').value);
+            const sizeValue = document.getElementById('size-select').value;
+            const rangeValue = document.getElementById('range-select').value;
+            const hiddenValue = document.getElementById('hidden-select').value;
+            
+            // Если пользователь выбрал конкретные значения, сохраняем их
+            if (sizeValue !== 'auto') {
+                userGridSize = parseInt(sizeValue);
+                gridSize = userGridSize;
+            }
+            if (rangeValue !== 'auto') {
+                userNumberRange = parseInt(rangeValue);
+                numberRange = userNumberRange;
+            }
+            if (hiddenValue !== 'auto') {
+                userHiddenCount = parseInt(hiddenValue);
+                hiddenCount = userHiddenCount;
+            }
+            
+            // Если какие-то параметры в авто режиме, пересчитываем их
+            if (sizeValue === 'auto' || rangeValue === 'auto' || hiddenValue === 'auto') {
+                updateLevelParameters();
+            }
             
             // Инициализируем сетки
             gameGrid = Array(gridSize).fill().map(() => Array(gridSize).fill(0));
@@ -771,11 +874,36 @@
         
         // Обработчики изменения настроек
         document.getElementById('size-select').addEventListener('change', () => {
-            const newSize = parseInt(document.getElementById('size-select').value);
-            document.getElementById('hidden-input').max = (newSize-1)*2;
-            if (parseInt(document.getElementById('hidden-input').value) > (newSize-1)*2) {
-                document.getElementById('hidden-input').value = (newSize-1)*2;
+            const sizeValue = document.getElementById('size-select').value;
+            if (sizeValue === 'auto') {
+                userGridSize = null;
+            } else {
+                userGridSize = parseInt(sizeValue);
             }
+            updateLevelParameters();
+            startNewPuzzle(); // Перестраиваем игру сразу
+        });
+        
+        document.getElementById('range-select').addEventListener('change', () => {
+            const rangeValue = document.getElementById('range-select').value;
+            if (rangeValue === 'auto') {
+                userNumberRange = null;
+            } else {
+                userNumberRange = parseInt(rangeValue);
+            }
+            updateLevelParameters();
+            startNewPuzzle(); // Перестраиваем игру сразу
+        });
+        
+        document.getElementById('hidden-select').addEventListener('change', () => {
+            const hiddenValue = document.getElementById('hidden-select').value;
+            if (hiddenValue === 'auto') {
+                userHiddenCount = null;
+            } else {
+                userHiddenCount = parseInt(hiddenValue);
+            }
+            updateLevelParameters();
+            startNewPuzzle(); // Перестраиваем игру сразу
         });
         
         // Запускаем новое задание

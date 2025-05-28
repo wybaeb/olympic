@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Загадочный квадрат - Развивающие игры</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        header {
+            background-color: #2196F3;
+            color: white;
+            text-align: center;
+            padding: 1.5rem 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .game-info {
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        
+        .game-controls {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .control-group label {
+            font-weight: bold;
+            color: #2196F3;
+        }
+        
+        .control-group select,
+        .control-group input {
+            padding: 0.5rem;
+            border: 2px solid #2196F3;
+            border-radius: 5px;
+            font-size: 1rem;
+            text-align: center;
+        }
+        
+        .mystery-square {
+            display: grid;
+            gap: 5px;
+            margin: 0 auto 2rem auto;
+            max-width: fit-content;
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .cell {
+            background-color: white;
+            border: 2px solid #2196F3;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            transition: all 0.2s;
+            min-width: 60px;
+            min-height: 60px;
+            position: relative;
+        }
+        
+        .cell.sum-cell {
+            background-color: #fff3e0;
+            border-color: #FF9800;
+            color: #e65100;
+        }
+        
+        .cell.sum-cell.hidden {
+            background-color: #ffe0b2;
+        }
+        
+        .cell.regular {
+            background-color: #f8f9fa;
+        }
+        
+        .cell.regular.hidden {
+            background-color: white;
+        }
+        
+        .cell.editable {
+            cursor: pointer;
+        }
+        
+        .cell.editable:hover {
+            background-color: #f0f8ff;
+            transform: scale(1.05);
+        }
+        
+        .cell.selected {
+            outline: 3px solid #FF9800;
+            box-shadow: 0 0 0 4px #ffe0b2;
+            animation: blink-outline 1s steps(1) infinite;
+        }
+        
+        @keyframes blink-outline {
+            0%, 50% { outline-color: #FF9800; }
+            51%, 100% { outline-color: #ffe0b2; }
+        }
+        
+        .cell-input {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: none;
+            text-align: center;
+            font-size: inherit;
+            font-weight: inherit;
+            color: inherit;
+            padding: 0;
+            margin: 0;
+            appearance: none;
+            outline: none;
+            box-sizing: border-box;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+        
+        .level-progress {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2rem;
+            margin: 1.5rem 0;
+            flex-wrap: wrap;
+        }
+        
+        .level-indicator {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #2196F3;
+        }
+        
+        .progress-dots {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #ddd;
+        }
+        
+        .dot.completed {
+            background-color: #4CAF50;
+        }
+        
+        .buttons {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.7rem;
+            margin-top: 2rem;
+        }
+        
+        .button {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s;
+            font-size: 1rem;
+        }
+        
+        .button:hover {
+            background-color: #45a049;
+        }
+        
+        .button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .button.home {
+            background-color: #2196F3;
+        }
+        
+        .button.home:hover {
+            background-color: #0b7dda;
+        }
+        
+        .button.check {
+            background-color: #FF9800;
+        }
+        
+        .button.check:hover {
+            background-color: #e68a00;
+        }
+        
+        .main-check {
+            font-size: 1.25em;
+            padding: 1.1em 2.2em;
+            background-color: #4CAF50 !important;
+            color: #fff;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .main-check:hover {
+            background-color: #388e3c !important;
+        }
+        
+        .ghost-btn {
+            background: none !important;
+            color: #2196F3 !important;
+            border: 1.5px solid #2196F3 !important;
+            box-shadow: none !important;
+            font-size: 1em;
+            padding: 0.5em 1.2em;
+            transition: background 0.2s, color 0.2s;
+        }
+        
+        .ghost-btn:hover {
+            background: #e3f2fd !important;
+            color: #1565c0 !important;
+        }
+        
+        .small-btn {
+            font-size: 0.95em;
+            padding: 0.5em 1.2em;
+            margin: 0;
+        }
+        
+        .message {
+            margin: 1rem 0;
+            padding: 1rem;
+            border-radius: 5px;
+            animation: fadeIn 0.5s;
+        }
+        
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 1rem 0;
+            margin-top: 2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .game-controls {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .cell {
+                min-width: 50px;
+                min-height: 50px;
+                font-size: 1.2rem;
+            }
+            
+            .level-progress {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .cell {
+                min-width: 40px;
+                min-height: 40px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Загадочный квадрат</h1>
+    </header>
+    
+    <div class="container">
+        <div class="game-info">
+            <p>Заполните пустые ячейки числами так, чтобы суммы в последних ячейках строк и столбцов были правильными. Последняя ячейка каждой строки и столбца содержит сумму всех предыдущих ячеек в этой строке или столбце.</p>
+        </div>
+        
+        <div class="game-controls">
+            <div class="control-group">
+                <label for="size-select">Размер квадрата:</label>
+                <select id="size-select">
+                    <option value="3">3×3</option>
+                    <option value="4">4×4</option>
+                    <option value="5" selected>5×5</option>
+                    <option value="6">6×6</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="range-input">Диапазон чисел:</label>
+                <input type="number" id="range-input" min="1" max="20" value="10">
+            </div>
+            <div class="control-group">
+                <label for="hidden-input">Скрытых ячеек:</label>
+                <input type="number" id="hidden-input" min="1" max="8" value="4">
+            </div>
+        </div>
+        
+        <div class="level-progress">
+            <div class="level-indicator">Уровень: <span id="current-level">1</span></div>
+            <div class="progress-dots">
+                <div class="dot" id="dot-1"></div>
+                <div class="dot" id="dot-2"></div>
+                <div class="dot" id="dot-3"></div>
+            </div>
+        </div>
+        
+        <div class="mystery-square" id="mystery-square">
+            <!-- Ячейки будут добавлены с помощью JavaScript -->
+        </div>
+        
+        <div id="message-box"></div>
+        
+        <div class="buttons">
+            <button id="check-button" class="button check main-check">
+                <span style='font-size:1.3em;vertical-align:middle;'>&#10004;</span> Проверить
+            </button>
+            <div style="display: flex; gap: 0.7em; margin-top:0.5em;">
+                <button id="restart-button" class="button small-btn ghost-btn">
+                    <span style='font-size:1.1em;vertical-align:middle;'>&#8635;</span> Новое задание
+                </button>
+                <a href="index.html" class="button home small-btn ghost-btn">
+                    <span style='font-size:1.1em;vertical-align:middle;'>&#8962;</span> На главную
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>&copy; 2025 Развивающие игры. Все права защищены.</p>
+    </footer>
+    
+    <script>
+        // Константы игры
+        const PUZZLES_PER_LEVEL = 3;
+        
+        // Состояние игры
+        let currentLevel = 1;
+        let puzzlesCompleted = 0;
+        let selectedCell = null;
+        let gameGrid = [];
+        let correctGrid = []; // Добавляем массив с правильными значениями
+        let hiddenCells = [];
+        let gridSize = 5;
+        let numberRange = 10;
+        let hiddenCount = 4;
+        
+        // Загружаем сохраненный прогресс
+        function loadGameState() {
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                try {
+                    const decoded = atob(hash);
+                    const [level, completed] = decoded.split('-').map(Number);
+                    if (!isNaN(level) && !isNaN(completed) && level >= 1 && completed >= 0) {
+                        currentLevel = level;
+                        puzzlesCompleted = completed;
+                    }
+                } catch(e) {
+                    console.error("Invalid hash:", e);
+                }
+            }
+            updateProgressUI();
+            updateLevelParameters();
+        }
+        
+        // Сохраняем прогресс
+        function saveGameState() {
+            const encoded = btoa(`${currentLevel}-${puzzlesCompleted}`);
+            window.location.hash = encoded;
+        }
+        
+        // Обновляем параметры уровня
+        function updateLevelParameters() {
+            const L = currentLevel;
+            
+            // R = 1 + round(L/2) + round(random()*L)
+            numberRange = 1 + Math.round(L/2) + Math.round(Math.random() * L);
+            
+            // H = 2 + max(1, roundup(L/2))
+            gridSize = 2 + Math.max(1, Math.ceil(L/2));
+            gridSize = Math.min(gridSize, 6); // Ограничиваем максимальный размер
+            
+            // S = min((H-1)*2, H + round(L/2)-1)
+            hiddenCount = Math.min((gridSize-1)*2, gridSize + Math.round(L/2) - 1);
+            
+            // Обновляем элементы управления
+            document.getElementById('size-select').value = gridSize;
+            document.getElementById('range-input').value = numberRange;
+            document.getElementById('hidden-input').value = hiddenCount;
+            document.getElementById('hidden-input').max = (gridSize-1)*2;
+        }
+        
+        // Обновляем индикаторы прогресса
+        function updateProgressUI() {
+            document.getElementById('current-level').textContent = currentLevel;
+            for (let i = 1; i <= 3; i++) {
+                const dot = document.getElementById(`dot-${i}`);
+                if (i <= puzzlesCompleted) {
+                    dot.classList.add('completed');
+                } else {
+                    dot.classList.remove('completed');
+                }
+            }
+        }
+        
+        // Генерируем случайное число в диапазоне
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+        
+        // Генерируем новую игру
+        function generateGame() {
+            // Читаем текущие настройки из элементов управления
+            gridSize = parseInt(document.getElementById('size-select').value);
+            numberRange = parseInt(document.getElementById('range-input').value);
+            hiddenCount = parseInt(document.getElementById('hidden-input').value);
+            
+            // Инициализируем сетки
+            gameGrid = Array(gridSize).fill().map(() => Array(gridSize).fill(0));
+            correctGrid = Array(gridSize).fill().map(() => Array(gridSize).fill(0));
+            
+            // 1. Заполняем неитоговые ячейки случайными числами
+            for (let row = 0; row < gridSize - 1; row++) {
+                for (let col = 0; col < gridSize - 1; col++) {
+                    const value = getRandomInt(1, numberRange);
+                    gameGrid[row][col] = value;
+                    correctGrid[row][col] = value;
+                }
+            }
+            
+            // 2. Вычисляем суммы для последних ячеек строк
+            for (let row = 0; row < gridSize - 1; row++) {
+                let sum = 0;
+                for (let col = 0; col < gridSize - 1; col++) {
+                    sum += correctGrid[row][col];
+                }
+                gameGrid[row][gridSize - 1] = sum;
+                correctGrid[row][gridSize - 1] = sum;
+            }
+            
+            // 3. Вычисляем суммы для последних ячеек столбцов
+            for (let col = 0; col < gridSize - 1; col++) {
+                let sum = 0;
+                for (let row = 0; row < gridSize - 1; row++) {
+                    sum += correctGrid[row][col];
+                }
+                gameGrid[gridSize - 1][col] = sum;
+                correctGrid[gridSize - 1][col] = sum;
+            }
+            
+            // 4. Вычисляем сумму всех неитоговых ячеек для правого нижнего угла
+            let totalSum = 0;
+            for (let row = 0; row < gridSize - 1; row++) {
+                for (let col = 0; col < gridSize - 1; col++) {
+                    totalSum += correctGrid[row][col];
+                }
+            }
+            gameGrid[gridSize - 1][gridSize - 1] = totalSum;
+            correctGrid[gridSize - 1][gridSize - 1] = totalSum;
+            
+            // 5. Выбираем случайные ячейки для скрытия
+            hiddenCells = [];
+            let availableCells = [];
+            
+            // Добавляем все ячейки кроме правой нижней (она всегда видна как контрольная)
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    if (!(row === gridSize - 1 && col === gridSize - 1)) {
+                        availableCells.push({row, col});
+                    }
+                }
+            }
+            
+            // Случайно выбираем ячейки для скрытия
+            for (let i = 0; i < Math.min(hiddenCount, availableCells.length); i++) {
+                const randomIndex = Math.floor(Math.random() * availableCells.length);
+                hiddenCells.push(availableCells[randomIndex]);
+                availableCells.splice(randomIndex, 1);
+            }
+            
+            // 6. Очищаем значения в скрытых ячейках
+            for (let hidden of hiddenCells) {
+                gameGrid[hidden.row][hidden.col] = 0;
+            }
+        }
+        
+        // Проверяем решение
+        function checkSolution() {
+            // Сначала сохраняем все значения из input-полей
+            const inputs = document.querySelectorAll('.cell-input');
+            inputs.forEach(input => {
+                const row = parseInt(input.dataset.row);
+                const col = parseInt(input.dataset.col);
+                const value = parseInt(input.value);
+                if (!isNaN(value) && value > 0) {
+                    gameGrid[row][col] = value;
+                }
+            });
+            
+            // Проверяем, что все скрытые ячейки заполнены
+            for (let hidden of hiddenCells) {
+                if (gameGrid[hidden.row][hidden.col] === 0 || isNaN(gameGrid[hidden.row][hidden.col])) {
+                    showMessage("Заполните все пустые ячейки!", "error");
+                    return false;
+                }
+            }
+            
+            // Проверяем, что введенные значения соответствуют правильным
+            for (let hidden of hiddenCells) {
+                if (gameGrid[hidden.row][hidden.col] !== correctGrid[hidden.row][hidden.col]) {
+                    showMessage("Некоторые значения неправильные. Проверьте суммы!", "error");
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        // Отображает сообщение пользователю
+        function showMessage(text, type) {
+            const messageBox = document.getElementById('message-box');
+            messageBox.innerHTML = `<div class="message ${type}">${text}</div>`;
+            
+            setTimeout(() => {
+                messageBox.innerHTML = '';
+            }, 5000);
+        }
+        
+        // Определяем, является ли ячейка итоговой (сумма)
+        function isSumCell(row, col) {
+            return row === gridSize - 1 || col === gridSize - 1;
+        }
+        
+        // Определяем, является ли ячейка скрытой
+        function isHiddenCell(row, col) {
+            return hiddenCells.some(hidden => hidden.row === row && hidden.col === col);
+        }
+        
+        // Обновляем отображение игрового поля
+        function updateGameUI() {
+            const squareElement = document.getElementById('mystery-square');
+            squareElement.innerHTML = '';
+            
+            // Устанавливаем CSS Grid
+            squareElement.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+            squareElement.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
+            
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    
+                    // Определяем тип ячейки
+                    if (isSumCell(row, col)) {
+                        cell.classList.add('sum-cell');
+                    } else {
+                        cell.classList.add('regular');
+                    }
+                    
+                    // Если ячейка скрыта, создаем поле ввода
+                    if (isHiddenCell(row, col)) {
+                        cell.classList.add('editable', 'hidden');
+                        cell.style.position = 'relative';
+                        
+                        const input = document.createElement('input');
+                        input.type = 'number';
+                        input.min = '1';
+                        input.max = '999';
+                        input.className = 'cell-input';
+                        input.dataset.row = row;
+                        input.dataset.col = col;
+                        input.value = gameGrid[row][col] === 0 ? '' : gameGrid[row][col];
+                        
+                        // Обработчики событий для input
+                        input.addEventListener('focus', () => {
+                            if (selectedCell !== null) {
+                                const prevCell = document.querySelector(`.cell[data-row="${selectedCell.row}"][data-col="${selectedCell.col}"]`);
+                                if (prevCell) prevCell.classList.remove('selected');
+                            }
+                            selectedCell = {row, col};
+                            cell.classList.add('selected');
+                        });
+                        
+                        input.addEventListener('blur', () => {
+                            const value = parseInt(input.value);
+                            if (!isNaN(value) && value > 0) {
+                                gameGrid[row][col] = value;
+                            } else {
+                                input.value = gameGrid[row][col] === 0 ? '' : gameGrid[row][col];
+                            }
+                            cell.classList.remove('selected');
+                            selectedCell = null;
+                        });
+                        
+                        input.addEventListener('input', () => {
+                            if (input.value.length > 3) {
+                                input.value = input.value.slice(0, 3);
+                            }
+                        });
+                        
+                        cell.appendChild(input);
+                    } else {
+                        // Отображаем значение
+                        cell.textContent = gameGrid[row][col];
+                    }
+                    
+                    squareElement.appendChild(cell);
+                }
+            }
+        }
+        
+        // Обработчики событий
+        document.getElementById('check-button').addEventListener('click', () => {
+            if (checkSolution()) {
+                showMessage("Правильно! Вы решили загадочный квадрат!", "success");
+                puzzlesCompleted++;
+                if (puzzlesCompleted >= PUZZLES_PER_LEVEL) {
+                    puzzlesCompleted = 0;
+                    currentLevel++;
+                    showMessage(`Поздравляем! Вы перешли на уровень ${currentLevel}`, "success");
+                    updateLevelParameters();
+                }
+                saveGameState();
+                updateProgressUI();
+                setTimeout(() => { startNewPuzzle(); }, 3000);
+            }
+        });
+        
+        document.getElementById('restart-button').addEventListener('click', startNewPuzzle);
+        
+        // Обработчики изменения настроек
+        document.getElementById('size-select').addEventListener('change', () => {
+            const newSize = parseInt(document.getElementById('size-select').value);
+            document.getElementById('hidden-input').max = (newSize-1)*2;
+            if (parseInt(document.getElementById('hidden-input').value) > (newSize-1)*2) {
+                document.getElementById('hidden-input').value = (newSize-1)*2;
+            }
+        });
+        
+        // Запускаем новое задание
+        function startNewPuzzle() {
+            generateGame();
+            selectedCell = null;
+            updateGameUI();
+            document.getElementById('message-box').innerHTML = '';
+        }
+        
+        // Инициализация игры
+        function initGame() {
+            loadGameState();
+            startNewPuzzle();
+        }
+        
+        // Запускаем игру
+        window.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html> 

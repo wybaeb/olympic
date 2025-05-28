@@ -132,6 +132,19 @@
             transform: scale(1.05);
         }
         
+        /* Стили для нередактируемых ячеек - выглядят disabled */
+        .cell:not(.editable) {
+            background-color: rgba(248, 249, 250, 0.5) !important;
+            border-color: rgba(33, 150, 243, 0.5) !important;
+            color: rgba(51, 51, 51, 0.8) !important;
+        }
+        
+        .cell.sum-cell:not(.editable) {
+            background-color: rgba(255, 243, 224, 0.5) !important;
+            border-color: rgba(255, 152, 0, 0.5) !important;
+            color: rgba(230, 81, 0, 0.8) !important;
+        }
+        
         .cell.selected {
             outline: 3px solid #FF9800;
             box-shadow: 0 0 0 4px #ffe0b2;
@@ -603,12 +616,40 @@
                 }
             }
             
-            // Проверяем, что введенные значения соответствуют правильным
-            for (let hidden of hiddenCells) {
-                if (gameGrid[hidden.row][hidden.col] !== correctGrid[hidden.row][hidden.col]) {
-                    showMessage("Некоторые значения неправильные. Проверьте суммы!", "error");
+            // Проверяем суммы в строках (кроме последней строки)
+            for (let row = 0; row < gridSize - 1; row++) {
+                let sum = 0;
+                for (let col = 0; col < gridSize - 1; col++) {
+                    sum += gameGrid[row][col];
+                }
+                if (sum !== gameGrid[row][gridSize - 1]) {
+                    showMessage(`Неправильная сумма в строке ${row + 1}. Ожидается: ${gameGrid[row][gridSize - 1]}, получено: ${sum}`, "error");
                     return false;
                 }
+            }
+            
+            // Проверяем суммы в столбцах (кроме последнего столбца)
+            for (let col = 0; col < gridSize - 1; col++) {
+                let sum = 0;
+                for (let row = 0; row < gridSize - 1; row++) {
+                    sum += gameGrid[row][col];
+                }
+                if (sum !== gameGrid[gridSize - 1][col]) {
+                    showMessage(`Неправильная сумма в столбце ${col + 1}. Ожидается: ${gameGrid[gridSize - 1][col]}, получено: ${sum}`, "error");
+                    return false;
+                }
+            }
+            
+            // Проверяем общую сумму (правый нижний угол)
+            let totalSum = 0;
+            for (let row = 0; row < gridSize - 1; row++) {
+                for (let col = 0; col < gridSize - 1; col++) {
+                    totalSum += gameGrid[row][col];
+                }
+            }
+            if (totalSum !== gameGrid[gridSize - 1][gridSize - 1]) {
+                showMessage(`Неправильная общая сумма. Ожидается: ${gameGrid[gridSize - 1][gridSize - 1]}, получено: ${totalSum}`, "error");
+                return false;
             }
             
             return true;
